@@ -1,0 +1,67 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Numerics;
+using System.Text;
+
+abstract record Expr(Position Position);
+record IntExpr(BigInteger Value, Position Position) : Expr(Position);
+record FloatExpr(double Value, Position Position) : Expr(Position);
+record StringExpr(string Value, Position Position) : Expr(Position);
+record CharExpr(char Value, Position Position) : Expr(Position);
+record BoolExpr(bool Value, Position Position) : Expr(Position);
+record NullExpr(Position Position) : Expr(Position);
+record NameExpr(string Name, Position Position) : Expr(Position);
+record UnaryExpr(Expr Right, TokenType Op, Position Position) : Expr(Position);
+record BinaryExpr(Expr Left, Expr Right, TokenType Op, Position Position) : Expr(Position);
+record ResolvedExpr(Expr Expr, TypeSymbol TypeSymbol) : Expr(Expr.Position);
+
+abstract class Stmt
+{
+    public Stmt(Position position)
+    {
+        Position = position;
+    }
+
+    public Position Position { get; }
+}
+
+
+class UnboundLetStmt : Stmt
+{
+    public UnboundLetStmt(PSymbol pSymbol, string name, Expr expr, Position position) : base(position)
+    {
+        PSymbol = pSymbol;
+        Name = name;
+        Expr = expr;
+    }
+
+    public PSymbol PSymbol { get; }
+    public string Name { get; }
+    public Expr Expr { get; }
+}
+
+class BoundLetStmt : Stmt
+{
+    public BoundLetStmt(TypeSymbol typeSymbol, string name, ResolvedExpr expr, Position position) : base(position)
+    {
+        TypeSymbol = typeSymbol;
+        Name = name;
+        Expr = expr;
+    }
+
+    public TypeSymbol TypeSymbol { get; }
+    public string Name { get; }
+    public ResolvedExpr Expr { get; }
+}
+
+class InferStmt : Stmt
+{
+    public InferStmt(string name, Expr expr, Position position) : base(position)
+    {
+        Name = name;
+        Expr = expr;
+    }
+
+    public string Name { get; }
+    public Expr Expr { get; }
+}
