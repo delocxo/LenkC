@@ -1,1 +1,1 @@
-native(void, "printf(\"Hello,Wordl!\\n\");");
+native(void, #printf("Hello, world!\n");#);

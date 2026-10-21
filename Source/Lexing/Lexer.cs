@@ -43,7 +43,7 @@ class Lexer
             { ")", TokenType.RightParen },
             { ",", TokenType.Comma },
             { ".", TokenType.Period },
-            { "#", TokenType.Hash },
+            // { "#", TokenType.Hash },
             { "~", TokenType.BitwiseNot },
             { "<<", TokenType.BitwiseLeftShift },
             { ">>", TokenType.BitwiseRightShift },
@@ -118,7 +118,13 @@ class Lexer
 
             if (Char() == '"')
             {
-                tokens.Add(LexString());
+                tokens.Add(LexString(true, '"'));
+                continue;
+            }
+
+            if (Char() == '#')
+            {
+                tokens.Add(LexString(false, '#'));
                 continue;
             }
 
@@ -166,7 +172,7 @@ class Lexer
         return tokens;
     }
 
-    Token LexString()
+    Token LexString(bool allowEscapes, char target)
     {
         Position position = _currentPos;
 
@@ -174,9 +180,9 @@ class Lexer
 
         StringBuilder sb = new StringBuilder();
 
-        while (NotAtEnd() && Char() != '"')
+        while (NotAtEnd() && Char() != target)
         {
-            if (Char() == '\\')
+            if (Char() == '\\' && allowEscapes)
             {
                 sb.Append(LexEscape());
                 continue;
