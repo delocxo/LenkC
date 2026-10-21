@@ -30,7 +30,14 @@ class Parser
             return ParseLet();
         if (Check(TokenType.Infer))
             return ParseInfer();
-        throw ThrowUnexpected();
+        return ParseExprStmt();
+    }
+
+    ExprStmt ParseExprStmt()
+    {
+        Expr expr = ParseExpr();
+        Expect(TokenType.Semicolon);
+        return new(expr, expr.Position);
     }
 
     UnboundLetStmt ParseLet()
@@ -161,7 +168,12 @@ class Parser
 
         string name = ParseName("Expected type name");
 
-        return new NamePSymbol(name, position);
+        PSymbol symbol = new NamePSymbol(name, position);
+
+        while (Match(TokenType.BackTick))
+            symbol = new PointerPSymbol(symbol, position);
+
+        return symbol;
     }
 
     bool Check(params TokenType[] types)
@@ -312,7 +324,7 @@ class Parser
 
     Expr ParseUnary()
     {
-        if (Check(TokenType.Sub, TokenType.Bang, TokenType.BitwiseNot, TokenType.BitwiseAnd /* TokenType.At */))
+        if (Check(TokenType.Sub, TokenType.Bang, TokenType.BitwiseNot, TokenType.BitwiseAnd, TokenType.BackTick /* TokenType.At */))
         {
             Token op = Current();
 
@@ -505,5 +517,25 @@ class Parser
         return left;
     }
 
-    Expr ParseExpr() => ParseOr();
+    Expr ParseAssign()
+    {
+        Expr left = ParseOr();
+
+        if (Match(TokenType.Equal))
+        {
+            Expr expr = ParseAssign();
+
+            if (left is NameExpr nameExpr)
+                return new AssignExpr(nameExpr.Name, expr, nameExpr.Position);
+
+            if (left is UnaryExpr unaryExpr && unaryExpr.Op is TokenType.BackTick)
+                return new PointerAssignExpr(unaryExpr, expr, unaryExpr.Position);
+
+            throw new Error("Invalid assign target", left.Position);
+        }
+
+        return left;
+    }
+
+    Expr ParseExpr() => ParseAssign();
 }

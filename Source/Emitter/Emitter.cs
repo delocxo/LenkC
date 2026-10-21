@@ -33,6 +33,13 @@ class Emitter
                     Emit($"{cName} {GetMangledName(cIrVariable.Name)} = {value};");
                     break;
                 }
+
+            case CIrValueStmt cIrValueStmt:
+                {
+                    string value = EmitValue(cIrValueStmt.Value);
+                    Emit($"{value};");
+                    break;
+                }
         }
     }
 
@@ -61,6 +68,8 @@ class Emitter
                     {
                         TokenType.Sub => $"-({value})",
                         TokenType.Bang => $"!({value})",
+                        TokenType.BitwiseAnd => $"&{value}",
+                        TokenType.BackTick => $"*{value}",
                         _ => throw new UnreachableException()
                     };
                 }
@@ -93,6 +102,19 @@ class Emitter
                     };
                     return $"({left} {op} {right})";
                 }
+
+            case CIrAssign cIrAssign:
+                {
+                    var value = EmitValue(cIrAssign.Value);
+                    return $"{GetMangledName(cIrAssign.Name)} = {value}";
+                }
+
+            case CIrPointerAssign cIrPointerAssign:
+                {
+                    var target = EmitValue(cIrPointerAssign.Target);
+                    var value = EmitValue(cIrPointerAssign.Value);
+                    return $"{target} = {value}";
+                }
         }
 
         throw new UnreachableException();
@@ -123,6 +145,10 @@ class Emitter
 
     string TypeToCType(TypeSymbol typeSymbol)
     {
+        if (typeSymbol is PointerSymbol pointerSymbol)
+        {
+            return $"{TypeToCType(pointerSymbol.Inner)}*";
+        }
         return typeSymbol.CName;
     }
 }

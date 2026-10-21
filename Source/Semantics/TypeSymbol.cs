@@ -1,9 +1,10 @@
-abstract record TypeSymbol(string Name, string CName, string FormatSymbol)
+abstract record TypeSymbol(string Name, string CName, string? FormatSymbol)
 {
     public static readonly StringSymbol String = new();
     public static readonly BoolSymbol Bool = new();
     public static readonly NullSymbol Null = new();
     public static readonly CharSymbol Char = new();
+    public static readonly VoidSymbol Void = new();
 
     public static readonly NumericSymbol Byte =
         new("byte", "int8_t", 8, false, true, "%hhd");
@@ -34,6 +35,13 @@ abstract record TypeSymbol(string Name, string CName, string FormatSymbol)
 
     public static readonly NumericSymbol Double =
         new("double", "double", 64, true, true, "%f");
+
+    public TypeSymbol RejectVoid(string message, Position position)
+    {
+        if (this is VoidSymbol voidSymbol)
+            throw new Error(message, position);
+        return this;
+    }
 }
 
 record NumericSymbol(string Name, string CName, int Bits, bool IsFloat, bool IsSigned, string FormatSymbol) : TypeSymbol(Name, CName, FormatSymbol)
@@ -57,3 +65,5 @@ record StringSymbol() : TypeSymbol("string", "char*", "%s");
 record BoolSymbol() : TypeSymbol("bool", "int", "%d");
 record NullSymbol() : TypeSymbol("null", "NULL", "%p");
 record CharSymbol() : TypeSymbol("char", "char", "%c");
+record VoidSymbol() : TypeSymbol("void", "void", null);
+record PointerSymbol(TypeSymbol Inner) : TypeSymbol("", "", "%p");

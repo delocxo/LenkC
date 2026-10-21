@@ -13,6 +13,8 @@ record NullExpr(Position Position) : Expr(Position);
 record NameExpr(string Name, Position Position) : Expr(Position);
 record UnaryExpr(Expr Right, TokenType Op, Position Position) : Expr(Position);
 record BinaryExpr(Expr Left, Expr Right, TokenType Op, Position Position) : Expr(Position);
+record AssignExpr(string Name, Expr Value, Position Position) : Expr(Position);
+record PointerAssignExpr(UnaryExpr Target, Expr Expr, Position Position) : Expr(Position);
 record ResolvedExpr(Expr Expr, TypeSymbol TypeSymbol) : Expr(Expr.Position);
 
 abstract class Stmt
@@ -63,5 +65,15 @@ class InferStmt : Stmt
     }
 
     public string Name { get; }
+    public Expr Expr { get; }
+}
+
+class ExprStmt : Stmt
+{
+    public ExprStmt(Expr expr, Position position) : base(position)
+    {
+        Expr = expr;
+    }
+
     public Expr Expr { get; }
 }

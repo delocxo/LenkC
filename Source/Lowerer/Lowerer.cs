@@ -24,6 +24,13 @@ class Lowerer
                     ));
                     return;
                 }
+
+            case ExprStmt exprStmt:
+                {
+                    var value = LowerExpr(exprStmt.Expr);
+                    Instructions.Add(new CIrValueStmt(value));
+                    return;
+                }
         }
 
         throw new UnreachableException();
@@ -62,6 +69,19 @@ class Lowerer
                     var left = LowerExpr(binaryExpr.Left);
                     var right = LowerExpr(binaryExpr.Right);
                     return new CIrBinary(binaryExpr.Op, left, right);
+                }
+
+            case AssignExpr assignExpr:
+                {
+                    var value = LowerExpr(assignExpr.Value);
+                    return new CIrAssign(assignExpr.Name, value);
+                }
+
+            case PointerAssignExpr pointerAssign:
+                {
+                    var target = LowerExpr(pointerAssign.Target);
+                    var value = LowerExpr(pointerAssign.Expr);
+                    return new CIrPointerAssign(target, value);
                 }
 
             case ResolvedExpr resolvedExpr:

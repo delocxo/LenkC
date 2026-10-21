@@ -15,6 +15,7 @@ static class TypeRegistery
         Register(TypeSymbol.String);
         Register(TypeSymbol.Bool);
         Register(TypeSymbol.Char);
+        Register(TypeSymbol.Void);
 
         Register(TypeSymbol.Byte);
         Register(TypeSymbol.UByte);

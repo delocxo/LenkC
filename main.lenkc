@@ -1,1 +1,6 @@
-infer x = 10000000000000000000;
+let string test = "Hello, World!";
+let char first = `test;
+
+native "
+printf
+";

@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 int main() {
-    unsigned long long _variable_x_ = 10000000000000000000;
+    char* _variable_test_ = "Hello, World!";
+    char _variable_first_ = *_variable_test_;
 
 }

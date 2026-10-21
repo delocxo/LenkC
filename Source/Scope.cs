@@ -38,6 +38,6 @@ static class Scopes
     {
         if (!TryResolve(name, out var local))
             throw new Error($"'{name}' does not exist", position);
-        return local;
+        return local!;
     }
 }

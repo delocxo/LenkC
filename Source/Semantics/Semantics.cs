@@ -15,8 +15,10 @@ class Semantics
     {
         if (stmt is UnboundLetStmt unboundLetStmt)
         {
-            var type = ResolveSymbol(unboundLetStmt.PSymbol);
+            var type = ResolveSymbol(unboundLetStmt.PSymbol)
+                .RejectVoid("Cannot use void as a variable type", unboundLetStmt.Position); ;
             var resolvedExpr = CheckExpr(unboundLetStmt.Expr);
+            resolvedExpr.TypeSymbol.RejectVoid("Expression cannot be void", unboundLetStmt.Position);
             Scopes.Declare(unboundLetStmt.Name, type, unboundLetStmt.Position);
             return new BoundLetStmt(
                 type,
@@ -28,12 +30,22 @@ class Semantics
         else if (stmt is InferStmt inferStmt)
         {
             var resolvedExpr = CheckExpr(inferStmt.Expr);
+            resolvedExpr.TypeSymbol.RejectVoid("Expression cannot be void", inferStmt.Position);
             Scopes.Declare(inferStmt.Name, resolvedExpr.TypeSymbol, inferStmt.Position);
             return new BoundLetStmt(
                 resolvedExpr.TypeSymbol,
                 inferStmt.Name,
                 resolvedExpr,
                 inferStmt.Position
+            );
+        }
+        else if (stmt is ExprStmt exprStmt)
+        {
+            if (exprStmt.Expr is not (AssignExpr or PointerAssignExpr))
+                throw new Error("Expression statement can only be an assignment or call", exprStmt.Position);
+            return new ExprStmt(
+                CheckExpr(exprStmt.Expr).Expr,
+                exprStmt.Position
             );
         }
 
@@ -74,6 +86,21 @@ class Semantics
                     TypeSymbol type = resolved.TypeSymbol;
                     if (unaryExpr.Op == TokenType.Bang)
                         type = TypeSymbol.Bool;
+                    else if (unaryExpr.Op == TokenType.BitwiseAnd)
+                        type = new PointerSymbol(type);
+                    else if (unaryExpr.Op == TokenType.BackTick)
+                    {
+                        if (type is PointerSymbol pointer)
+                        {
+                            if (pointer.Inner is VoidSymbol)
+                                throw new Error("Cannot deference a void pointer", unaryExpr.Position);
+                            type = pointer.Inner;
+                        }
+                        else if (type is StringSymbol stringSymbol)
+                            type = TypeSymbol.Char;
+                        else
+                            throw new Error("Cannot deference a string or non-pointer", unaryExpr.Position);
+                    }
                     else if (type is NumericSymbol n && !n.IsFloat && n.Bits < 32)
                         type = TypeSymbol.Int;
                     return new(unaryExpr with { Right = resolved.Expr }, type);
@@ -105,6 +132,29 @@ class Semantics
                         return new(newExpr, TypeSymbol.Bool);
                     }
 
+                    if (left.TypeSymbol is PointerSymbol pointer &&
+                        right.TypeSymbol is NumericSymbol number &&
+                        !number.IsFloat &&
+                        binaryExpr.Op is TokenType.Add or TokenType.Sub)
+                    {
+                        return new(newExpr, pointer);
+                    }
+
+                    if (right.TypeSymbol is PointerSymbol pointerRight &&
+                        left.TypeSymbol is NumericSymbol numberLeft &&
+                        !numberLeft.IsFloat &&
+                        binaryExpr.Op == TokenType.Add)
+                    {
+                        return new(newExpr, pointerRight);
+                    }
+
+                    if (left.TypeSymbol is PointerSymbol &&
+                        right.TypeSymbol is PointerSymbol &&
+                        binaryExpr.Op == TokenType.Sub)
+                    {
+                        return new(newExpr, TypeSymbol.Long);
+                    }
+
                     if (left.TypeSymbol is NumericSymbol l && right.TypeSymbol is NumericSymbol r)
                     {
                         if (binaryExpr.Op is TokenType.BitwiseLeftShift or TokenType.BitwiseRightShift)
@@ -116,7 +166,27 @@ class Semantics
                         return new(newExpr, PromoteArithmetic(l, r));
                     }
 
-                    throw new UnreachableException("Binary error at semantics");
+                    throw new Error("Binary error", expr.Position);
+                }
+
+            case AssignExpr assignExpr:
+                {
+                    Scopes.Resolve(assignExpr.Name, assignExpr.Position);
+                    var resolved = CheckExpr(assignExpr.Value);
+                    var newExpr = new AssignExpr(assignExpr.Name, resolved.Expr, assignExpr.Position);
+                    return new(newExpr, resolved.TypeSymbol);
+                }
+
+            case PointerAssignExpr pointerAssignExpr:
+                {
+                    var resolved = CheckExpr(pointerAssignExpr.Target);
+                    var value = CheckExpr(pointerAssignExpr.Expr);
+                    var newExpr = pointerAssignExpr with
+                    {
+                        Target = (UnaryExpr)resolved.Expr,
+                        Expr = value.Expr
+                    };
+                    return new(newExpr, resolved.TypeSymbol);
                 }
         }
 
@@ -133,6 +203,9 @@ class Semantics
                         throw new Error($"Type '{namePSymbol.Name}' does not exist", pSymbol.Position);
                     return value;
                 }
+
+            case PointerPSymbol pointerPSymbol:
+                return new PointerSymbol(ResolveSymbol(pointerPSymbol.InnerSymbol));
 
             default:
                 throw new NotImplementedException();
