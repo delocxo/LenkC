@@ -84,6 +84,20 @@ class Lowerer
                     return new CIrPointerAssign(target, value);
                 }
 
+            case BoundNativeExpr boundNativeExpr:
+                {
+                    List<CIrNativePart> parts = boundNativeExpr.Parts
+                        .Select<NativePart, CIrNativePart>(x =>
+                            x switch
+                            {
+                                NativeExpr ne => new CIrNativeValue(LowerExpr(ne.Expr)),
+                                NativeText nt => new CIrNativeText(nt.Text),
+                                _ => throw new UnreachableException()
+                            }
+                        ).ToList();
+                    return new CIrNative(parts);
+                }
+
             case ResolvedExpr resolvedExpr:
                 return LowerExpr(resolvedExpr.Expr);
         }

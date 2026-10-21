@@ -1,6 +1,1 @@
-let string test = "Hello, World!";
-let char first = `test;
-
-native "
-printf
-";
+native(void, "printf(\"Hello,Wordl!\\n\");");

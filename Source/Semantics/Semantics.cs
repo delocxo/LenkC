@@ -41,7 +41,7 @@ class Semantics
         }
         else if (stmt is ExprStmt exprStmt)
         {
-            if (exprStmt.Expr is not (AssignExpr or PointerAssignExpr))
+            if (exprStmt.Expr is not (AssignExpr or PointerAssignExpr or UnboundNativeExpr))
                 throw new Error("Expression statement can only be an assignment or call", exprStmt.Position);
             return new ExprStmt(
                 CheckExpr(exprStmt.Expr).Expr,
@@ -96,7 +96,7 @@ class Semantics
                                 throw new Error("Cannot deference a void pointer", unaryExpr.Position);
                             type = pointer.Inner;
                         }
-                        else if (type is StringSymbol stringSymbol)
+                        else if (type is StringSymbol)
                             type = TypeSymbol.Char;
                         else
                             throw new Error("Cannot deference a string or non-pointer", unaryExpr.Position);
@@ -187,6 +187,49 @@ class Semantics
                         Expr = value.Expr
                     };
                     return new(newExpr, resolved.TypeSymbol);
+                }
+
+            case UnboundNativeExpr unboundNativeExpr:
+                {
+                    var type = ResolveSymbol(unboundNativeExpr.Symbol);
+                    string source = unboundNativeExpr.Source;
+                    Position position = unboundNativeExpr.Position;
+
+                    List<NativePart> parts = [];
+                    int i = 0;
+
+                    while (i < source.Length)
+                    {
+                        int start = source.IndexOf("${", i, StringComparison.Ordinal);
+
+                        if (start == -1)
+                        {
+                            parts.Add(new NativeText(source[i..]));
+                            break;
+                        }
+
+                        if (start > i)
+                            parts.Add(new NativeText(source[i..start]));
+
+                        int end = source.IndexOf('}', start + 2);
+
+                        if (end == -1)
+                            throw new Error("Unterminated native expression", position);
+
+                        string text = source[(start + 2)..end];
+
+                        var nativeExpr = Parser.ParseExprText(text, position.Source);
+                        var resolved = CheckExpr(nativeExpr);
+
+                        parts.Add(new NativeExpr(resolved.Expr));
+
+                        i = end + 1;
+                    }
+
+                    return new(
+                        new BoundNativeExpr(type, parts, position),
+                        type
+                    );
                 }
         }
 

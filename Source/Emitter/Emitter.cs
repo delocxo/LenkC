@@ -37,7 +37,10 @@ class Emitter
             case CIrValueStmt cIrValueStmt:
                 {
                     string value = EmitValue(cIrValueStmt.Value);
-                    Emit($"{value};");
+                    if (cIrValueStmt.Value is CIrNative)
+                        Emit($"{value}");
+                    else
+                        Emit($"{value};");
                     break;
                 }
         }
@@ -114,6 +117,21 @@ class Emitter
                     var target = EmitValue(cIrPointerAssign.Target);
                     var value = EmitValue(cIrPointerAssign.Value);
                     return $"{target} = {value}";
+                }
+
+            case CIrNative cIrNative:
+                {
+                    var parts = cIrNative.Parts
+                        .Select(
+                            x => x switch
+                            {
+                                CIrNativeValue ne => EmitValue(ne.Value),
+                                CIrNativeText nt => nt.Text,
+                                _ => throw new UnreachableException()
+                            }
+                        );
+                    string final = string.Join("", parts);
+                    return final;
                 }
         }
 

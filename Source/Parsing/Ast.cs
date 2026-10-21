@@ -15,6 +15,11 @@ record UnaryExpr(Expr Right, TokenType Op, Position Position) : Expr(Position);
 record BinaryExpr(Expr Left, Expr Right, TokenType Op, Position Position) : Expr(Position);
 record AssignExpr(string Name, Expr Value, Position Position) : Expr(Position);
 record PointerAssignExpr(UnaryExpr Target, Expr Expr, Position Position) : Expr(Position);
+record UnboundNativeExpr(PSymbol Symbol, string Source, Position Position) : Expr(Position);
+abstract record NativePart;
+record NativeText(string Text) : NativePart;
+record NativeExpr(Expr Expr) : NativePart;
+record BoundNativeExpr(TypeSymbol Symbol, List<NativePart> Parts, Position Position) : Expr(Position);
 record ResolvedExpr(Expr Expr, TypeSymbol TypeSymbol) : Expr(Expr.Position);
 
 abstract class Stmt

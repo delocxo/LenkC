@@ -14,6 +14,7 @@ class SourceGenerator
     {
         Result.AppendLine("#include <stdlib.h>");
         Result.AppendLine("#include <stdint.h>");
+        Result.AppendLine("#include <stdio.h>");
 
         Result.AppendLine("int main() {");
         Result.AppendLine(_emitter.Ouput.ToString());

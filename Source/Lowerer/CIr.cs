@@ -9,3 +9,7 @@ record CIrUnary(TokenType Op, CIrValue Right) : CIrValue;
 record CIrBinary(TokenType Op, CIrValue Left, CIrValue Right) : CIrValue;
 record CIrAssign(string Name, CIrValue Value) : CIrValue;
 record CIrPointerAssign(CIrValue Target, CIrValue Value) : CIrValue;
+record CIrNativePart;
+record CIrNativeText(string Text) : CIrNativePart;
+record CIrNativeValue(CIrValue Value) : CIrNativePart;
+record CIrNative(List<CIrNativePart> Parts) : CIrValue;

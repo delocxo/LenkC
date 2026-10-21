@@ -269,6 +269,21 @@ class Parser
             Expect(TokenType.RightParen);
             return expr;
         }
+        else if (Match(TokenType.Native))
+        {
+            Expect(TokenType.LeftParen);
+
+            var symbol = ParseSymbol();
+
+            Expect(TokenType.Comma);
+
+            string text = Current().Lexeme;
+            Expect(TokenType.String);
+
+            Expect(TokenType.RightParen);
+
+            return new UnboundNativeExpr(symbol, text, token.Position);
+        }
 
         throw ThrowUnexpected();
     }
@@ -537,5 +552,12 @@ class Parser
         return left;
     }
 
-    Expr ParseExpr() => ParseAssign();
+    public Expr ParseExpr() => ParseAssign();
+
+    public static Expr ParseExprText(string text, string source)
+    {
+        Lexer lexer = new Lexer(text, source);
+        Parser parser = new Parser(lexer.Lex());
+        return parser.ParseExpr();
+    }
 }
