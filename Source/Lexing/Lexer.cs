@@ -14,7 +14,14 @@ class Lexer
             { "false", TokenType.False },
             { "let", TokenType.Let },
             { "infer", TokenType.Infer },
-            { "native", TokenType.Native }
+            { "native", TokenType.Native },
+            { "gnative", TokenType.GlobalNative },
+            { "null", TokenType.Null },
+            { "if", TokenType.If },
+            { "else", TokenType.Else },
+            { "while", TokenType.While },
+            { "break", TokenType.Break },
+            { "continue", TokenType.Continue }
         };
 
     static Dictionary<string, TokenType> s_symbols = new Dictionary<string, TokenType>()

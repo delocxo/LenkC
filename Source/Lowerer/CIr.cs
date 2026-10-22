@@ -1,9 +1,14 @@
 abstract record CIrInstruction;
 record CIrVariable(TypeSymbol Type, string Name, CIrValue Value) : CIrInstruction;
 record CIrValueStmt(CIrValue Value) : CIrInstruction;
+record CIrControlFlowStart(string Name, CIrValue? Condition) : CIrInstruction;
+record CIrControlFlowEnd : CIrInstruction;
+record CIrBreak : CIrInstruction;
+record CIrContinue : CIrInstruction;
 
 abstract record CIrValue;
 record CIrLiteral(object Value) : CIrValue;
+record CIrNull : CIrValue;
 record CIrLocal(string Name) : CIrValue;
 record CIrUnary(TokenType Op, CIrValue Right) : CIrValue;
 record CIrBinary(TokenType Op, CIrValue Left, CIrValue Right) : CIrValue;

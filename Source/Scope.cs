@@ -14,6 +14,8 @@ static class Scopes
 {
     static Stack<Dictionary<string, Local>> _scopes = new([new()]);
 
+    public static bool AtGlobalLevel => _scopes.Count == 1;
+
     public static Local Declare(string name, TypeSymbol typeSymbol, Position position)
     {
         if (TryResolve(name, out _))
@@ -40,4 +42,7 @@ static class Scopes
             throw new Error($"'{name}' does not exist", position);
         return local!;
     }
+
+    public static void BeginScope() => _scopes.Push(new());
+    public static void EndScope() => _scopes.Pop();
 }

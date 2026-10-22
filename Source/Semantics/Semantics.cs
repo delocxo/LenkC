@@ -3,6 +3,8 @@ using System.Numerics;
 
 class Semantics
 {
+    int _loopDepth = 0;
+
     public List<Stmt> Check(List<Stmt> stmts)
     {
         List<Stmt> newStmts = [];
@@ -18,6 +20,8 @@ class Semantics
             var type = ResolveSymbol(unboundLetStmt.PSymbol)
                 .RejectVoid("Cannot use void as a variable type", unboundLetStmt.Position); ;
             var resolvedExpr = CheckExpr(unboundLetStmt.Expr);
+            if (resolvedExpr.TypeSymbol is NullSymbol && type is not PointerSymbol)
+                throw new Error("Cannont assign null to a non-pointer variable", unboundLetStmt.Position);
             resolvedExpr.TypeSymbol.RejectVoid("Expression cannot be void", unboundLetStmt.Position);
             Scopes.Declare(unboundLetStmt.Name, type, unboundLetStmt.Position);
             return new BoundLetStmt(
@@ -31,6 +35,8 @@ class Semantics
         {
             var resolvedExpr = CheckExpr(inferStmt.Expr);
             resolvedExpr.TypeSymbol.RejectVoid("Expression cannot be void", inferStmt.Position);
+            if (resolvedExpr.TypeSymbol is NullSymbol)
+                throw new Error("Cannot infer a variable from null", inferStmt.Position);
             Scopes.Declare(inferStmt.Name, resolvedExpr.TypeSymbol, inferStmt.Position);
             return new BoundLetStmt(
                 resolvedExpr.TypeSymbol,
@@ -42,11 +48,53 @@ class Semantics
         else if (stmt is ExprStmt exprStmt)
         {
             if (exprStmt.Expr is not (AssignExpr or PointerAssignExpr or UnboundNativeExpr))
-                throw new Error("Expression statement can only be an assignment or call", exprStmt.Position);
+                throw new Error($"Expression statement can only be an assignment or call: {exprStmt.Expr.GetType().Name}", exprStmt.Position);
             return new ExprStmt(
                 CheckExpr(exprStmt.Expr).Expr,
                 exprStmt.Position
             );
+        }
+        else if (stmt is IfStmt ifStmt)
+        {
+            foreach (var branch in ifStmt.IfBranches)
+            {
+                Scopes.BeginScope();
+                branch.Expr = CheckExpr(branch.Expr).Expr;
+                branch.Stmts = Check(branch.Stmts);
+                Scopes.EndScope();
+            }
+
+            if (ifStmt.ElseBranch != null)
+            {
+                Scopes.BeginScope();
+                ifStmt.ElseBranch = Check(ifStmt.ElseBranch);
+                Scopes.EndScope();
+            }
+
+            return ifStmt;
+        }
+        else if (stmt is WhileStmt whileStmt)
+        {
+            var branch = whileStmt.Branch;
+            branch.Expr = CheckExpr(branch.Expr).Expr;
+            Scopes.BeginScope();
+            _loopDepth++;
+            branch.Stmts = Check(branch.Stmts);
+            _loopDepth--;
+            Scopes.EndScope();
+            return whileStmt;
+        }
+        else if (stmt is BreakStmt breakStmt)
+        {
+            if (_loopDepth <= 0)
+                throw new Error("Cannont use break outside a loop", breakStmt.Position);
+            return breakStmt;
+        }
+        else if (stmt is ContinueStmt continueStmt)
+        {
+            if (_loopDepth <= 0)
+                throw new Error("Cannot use continue outside a loop", continueStmt.Position);
+            return continueStmt;
         }
 
         throw new UnreachableException($"Invalid statement: {stmt.GetType().Name}");
@@ -70,6 +118,9 @@ class Semantics
 
             case BoolExpr boolExpr:
                 return new(boolExpr, TypeSymbol.Bool);
+
+            case NullExpr nullExpr:
+                return new(nullExpr, TypeSymbol.Null);
 
             case NameExpr nameExpr:
                 return new(

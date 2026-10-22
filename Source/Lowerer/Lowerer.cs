@@ -31,6 +31,46 @@ class Lowerer
                     Instructions.Add(new CIrValueStmt(value));
                     return;
                 }
+
+            case IfStmt ifStmt:
+                {
+                    for (int i = 0; i < ifStmt.IfBranches.Count; i++)
+                    {
+                        string name = i == 0 ? "if" : "else if";
+                        var branch = ifStmt.IfBranches[i];
+                        var condition = LowerExpr(branch.Expr);
+                        Instructions.Add(new CIrControlFlowStart(name, condition));
+                        LowererStmts(branch.Stmts);
+                        Instructions.Add(new CIrControlFlowEnd());
+                    }
+
+                    if (ifStmt.ElseBranch != null)
+                    {
+                        Instructions.Add(new CIrControlFlowStart("else", null));
+                        LowererStmts(ifStmt.ElseBranch);
+                        Instructions.Add(new CIrControlFlowEnd());
+                    }
+
+                    return;
+                }
+
+            case WhileStmt whileStmt:
+                {
+                    var branch = whileStmt.Branch;
+                    var condition = LowerExpr(branch.Expr);
+                    Instructions.Add(new CIrControlFlowStart("while", condition));
+                    LowererStmts(branch.Stmts);
+                    Instructions.Add(new CIrControlFlowEnd());
+                    return;
+                }
+
+            case BreakStmt:
+                Instructions.Add(new CIrBreak());
+                return;
+
+            case ContinueStmt:
+                Instructions.Add(new CIrContinue());
+                return;
         }
 
         throw new UnreachableException();
@@ -54,6 +94,9 @@ class Lowerer
 
             case BoolExpr boolExpr:
                 return new CIrLiteral(boolExpr.Value);
+
+            case NullExpr:
+                return new CIrNull();
 
             case NameExpr nameExpr:
                 return new CIrLocal(nameExpr.Name);

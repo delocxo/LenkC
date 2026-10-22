@@ -82,3 +82,51 @@ class ExprStmt : Stmt
 
     public Expr Expr { get; }
 }
+
+class IfBranch
+{
+    public IfBranch(Expr expr, List<Stmt> stmts)
+    {
+        Expr = expr;
+        Stmts = stmts;
+    }
+
+    public Expr Expr { get; set; }
+    public List<Stmt> Stmts { get; set; }
+}
+
+class IfStmt : Stmt
+{
+    public IfStmt(List<IfBranch> ifBranches, List<Stmt>? elseBranch, Position position) : base(position)
+    {
+        IfBranches = ifBranches;
+        ElseBranch = elseBranch;
+    }
+
+    public List<IfBranch> IfBranches { get; }
+    public List<Stmt>? ElseBranch { get; set; }
+}
+
+class WhileStmt : Stmt
+{
+    public WhileStmt(IfBranch branch, Position position) : base(position)
+    {
+        Branch = branch;
+    }
+
+    public IfBranch Branch { get; }
+}
+
+class BreakStmt : Stmt
+{
+    public BreakStmt(Position position) : base(position)
+    {
+    }
+}
+
+class ContinueStmt : Stmt
+{
+    public ContinueStmt(Position position) : base(position)
+    {
+    }
+}

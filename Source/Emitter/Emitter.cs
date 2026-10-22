@@ -8,8 +8,9 @@ class Emitter
     public StringBuilder Ouput { get; } = new();
     Lowerer _lowerer;
 
-    int indentLevel = 1;
-    int indentSize = 4;
+    int _indentLevel = 1;
+    int _indentSize = 4;
+    int _ip = 0;
 
     public Emitter(Lowerer lowerer)
     {
@@ -18,8 +19,19 @@ class Emitter
 
     public void EmitInstructions()
     {
-        foreach (var instruction in _lowerer.Instructions)
+        while (_ip < _lowerer.Instructions.Count)
+            EmitInstruction(_lowerer.Instructions[_ip++]);
+    }
+
+    void EmitInstructionsUntil<T>() where T : CIrInstruction
+    {
+        while (_ip < _lowerer.Instructions.Count)
+        {
+            var instruction = _lowerer.Instructions[_ip++];
+            if (instruction is T)
+                break;
             EmitInstruction(instruction);
+        }
     }
 
     void EmitInstruction(CIrInstruction cIrInstruction)
@@ -43,6 +55,31 @@ class Emitter
                         Emit($"{value};");
                     break;
                 }
+
+            case CIrControlFlowStart controlFlowStart:
+                {
+                    bool hasCondition = controlFlowStart.Condition != null;
+                    string condition = hasCondition ? EmitValue(controlFlowStart.Condition!) : "";
+
+                    Emit($"{controlFlowStart.Name}{(hasCondition ? $" ({condition})" : "")} {{");
+
+                    _indentLevel++;
+
+                    EmitInstructionsUntil<CIrControlFlowEnd>();
+
+                    _indentLevel--;
+
+                    Emit("}");
+                    break;
+                }
+
+            case CIrBreak:
+                Emit("break;");
+                break;
+
+            case CIrContinue:
+                Emit("continue;");
+                break;
         }
     }
 
@@ -63,6 +100,9 @@ class Emitter
                     bool b => b ? "1" : "0",
                     _ => throw new UnreachableException()
                 };
+
+            case CIrNull:
+                return "NULL";
 
             case CIrUnary cIrUnary:
                 {
@@ -141,7 +181,7 @@ class Emitter
     void Emit(string line)
     {
         Ouput
-        .Append(' ', indentSize * indentLevel)
+        .Append(' ', _indentSize * _indentLevel)
         .AppendLine(line);
     }
 

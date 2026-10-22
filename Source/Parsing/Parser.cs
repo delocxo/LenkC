@@ -30,6 +30,14 @@ class Parser
             return ParseLet();
         if (Check(TokenType.Infer))
             return ParseInfer();
+        if (Check(TokenType.If))
+            return ParseIf();
+        if (Check(TokenType.While))
+            return ParseWhile();
+        if (Check(TokenType.Break))
+            return ParsBreak();
+        if (Check(TokenType.Continue))
+            return ParsContinue();
         return ParseExprStmt();
     }
 
@@ -72,6 +80,64 @@ class Parser
         return new(name, expr, position);
     }
 
+    IfStmt ParseIf()
+    {
+        Position position = PosNext();
+
+        List<IfBranch> branches = [ParseBranch()];
+
+        while (Check(TokenType.Else) && PeekNotAtEnd() && Peek().TokenType == TokenType.If)
+        {
+            Next();
+            Next();
+            branches.Add(ParseBranch());
+        }
+
+        List<Stmt>? elseBranch = null;
+
+        if (Match(TokenType.Else))
+            elseBranch = ParseBody();
+
+        return new(branches, elseBranch, position);
+    }
+
+    WhileStmt ParseWhile()
+    {
+        Position position = PosNext();
+
+        IfBranch branch = ParseBranch();
+
+        return new(branch, position);
+    }
+
+    BreakStmt ParsBreak()
+    {
+        Position position = PosNext();
+        Expect(TokenType.Semicolon);
+        return new(position);
+    }
+
+    ContinueStmt ParsContinue()
+    {
+        Position position = PosNext();
+        Expect(TokenType.Semicolon);
+        return new(position);
+    }
+
+
+    IfBranch ParseBranch()
+    {
+        Expect(TokenType.LeftParen);
+
+        Expr condition = ParseExpr();
+
+        Expect(TokenType.RightParen);
+
+        var body = ParseBody();
+
+        return new(condition, body);
+    }
+
     Error ThrowUnexpected()
     {
         Token token = Current();
@@ -99,17 +165,19 @@ class Parser
         return name;
     }
 
-    // List<Stmt> ParseBody()
-    // {
-    //     List<Stmt> stmts = new List<Stmt>();
+    List<Stmt> ParseBody()
+    {
+        List<Stmt> stmts = new List<Stmt>();
 
-    //     while (NotAtEnd() && !Check(TokenType.End))
-    //         stmts.Add(ParseStmt());
+        Expect(TokenType.LeftBrace);
 
-    //     Expect(TokenType.End);
+        while (NotAtEnd() && !Check(TokenType.RightBrace))
+            stmts.Add(ParseStmt());
 
-    //     return stmts;
-    // }
+        Expect(TokenType.RightBrace);
+
+        return stmts;
+    }
 
     List<string> ParseNames(TokenType end)
     {
@@ -218,6 +286,19 @@ class Parser
         return false;
     }
 
+    bool PeekMatch(params TokenType[] types)
+    {
+        if (_i + 1 >= _tokens.Count)
+            return false;
+
+        if (types.Contains(_tokens[_i + 1].TokenType))
+        {
+            Next();
+            return true;
+        }
+        return false;
+    }
+
     void Expect(TokenType type)
     {
         if (Check(type))
@@ -261,8 +342,8 @@ class Parser
         {
             return new NameExpr(token.Lexeme, token.Position);
         }
-        // else if (Match(TokenType.Null))
-        //     return new NullExpr(token.Position);
+        else if (Match(TokenType.Null))
+            return new NullExpr(token.Position);
         else if (Match(TokenType.LeftParen))
         {
             Expr expr = ParseExpr();

@@ -1,1 +1,192 @@
-native(void, #printf("Hello, world!\n");#);
+// ========================================
+// TEST 1: WHILE + CONTINUE + BREAK
+// ========================================
+
+let int i = 0;
+let int sum = 0;
+let int accepted = 0;
+
+while (i < 100) {
+    i = i + 1;
+
+    if (i % 3 == 0) {
+        continue;
+    }
+
+    if (i > 12) {
+        break;
+    }
+
+    sum = sum + i;
+    accepted = accepted + 1;
+}
+
+native(void, #printf("Test 1: sum=%d accepted=%d\n", ${sum}, ${accepted});#);
+
+
+// ========================================
+// TEST 2: IF / ELSE IF / ELSE
+// ========================================
+
+let int number = -4;
+
+let int negatives = 0;
+let int zeros = 0;
+let int small = 0;
+let int large = 0;
+let int branchScore = 0;
+
+while (number <= 6) {
+    if (number < 0) {
+        negatives = negatives + 1;
+        branchScore = branchScore + 1;
+    }
+    else if (number == 0) {
+        zeros = zeros + 1;
+        branchScore = branchScore + 10;
+    }
+    else if (number < 4) {
+        small = small + 1;
+        branchScore = branchScore + 100;
+    }
+    else {
+        large = large + 1;
+        branchScore = branchScore + 1000;
+    }
+
+    number = number + 1;
+}
+
+native(void, #printf("Test 2: %d %d %d %d\n", ${negatives}, ${zeros}, ${small}, ${large});#);
+native(void, #printf("Branch score: %d\n", ${branchScore});#);
+
+
+// ========================================
+// TEST 3: NESTED WHILE LOOPS
+// ========================================
+
+let int outer = 0;
+let int inner = 0;
+let int iterations = 0;
+
+while (outer < 4) {
+    inner = 0;
+
+    while (inner < 10) {
+        inner = inner + 1;
+
+        if (inner == 2) {
+            continue;
+        }
+
+        if (inner == 5) {
+            break;
+        }
+
+        iterations = iterations + 1;
+    }
+
+    outer = outer + 1;
+}
+
+native(void, #printf("Test 3: iterations=%d\n", ${iterations});#);
+
+
+// ========================================
+// TEST 4: FACTORIAL
+// ========================================
+
+let int n = 6;
+let int factorial = 1;
+
+while (n > 1) {
+    factorial = factorial * n;
+    n = n - 1;
+}
+
+native(void, #printf("Test 4: factorial=%d\n", ${factorial});#);
+
+
+// ========================================
+// TEST 5: NESTED CONDITIONALS
+// ========================================
+
+let int score = 85;
+let bool enabled = true;
+let int category = 0;
+
+if (enabled) {
+    if (score >= 90) {
+        category = 4;
+    }
+    else if (score >= 80) {
+        category = 3;
+    }
+    else if (score >= 70) {
+        category = 2;
+    }
+    else {
+        category = 1;
+    }
+}
+else {
+    category = -1;
+}
+
+native(void, #printf("Test 5: category=%d\n", ${category});#);
+
+
+// ========================================
+// TEST 6: ZERO ITERATIONS
+// ========================================
+
+let int untouched = 99;
+
+while (false) {
+    untouched = 0;
+}
+
+native(void, #printf("Test 6: untouched=%d\n", ${untouched});#);
+
+
+// ========================================
+// TEST 7: BREAK OUT OF INFINITE LOOP
+// ========================================
+
+let int counter = 0;
+
+while (true) {
+    counter = counter + 1;
+
+    if (counter == 25) {
+        break;
+    }
+}
+
+native(void, #printf("Test 7: counter=%d\n", ${counter});#);
+
+
+// ========================================
+// FINAL VERIFICATION
+// ========================================
+
+let bool passed =
+    (sum == 48) &&
+    (accepted == 8) &&
+    (negatives == 4) &&
+    (zeros == 1) &&
+    (small == 3) &&
+    (large == 3) &&
+    (branchScore == 3314) &&
+    (iterations == 12) &&
+    (factorial == 720) &&
+    (category == 3) &&
+    (untouched == 99) &&
+    (counter == 25);
+
+if (passed) {
+    native(void, #printf("ALL TESTS PASSED!\n");#);
+}
+else {
+    native(void, #printf("TEST FAILED!\n");#);
+}
