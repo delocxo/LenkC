@@ -365,6 +365,20 @@ class Parser
 
             return new UnboundNativeExpr(symbol, text, token.Position);
         }
+        else if (Match(TokenType.Cast))
+        {
+            Expect(TokenType.LeftParen);
+
+            var symbol = ParseSymbol();
+
+            Expect(TokenType.Comma);
+
+            var value = ParseExpr();
+
+            Expect(TokenType.RightParen);
+
+            return new UnboundCastExpr(symbol, value, token.Position);
+        }
 
         throw ThrowUnexpected();
     }

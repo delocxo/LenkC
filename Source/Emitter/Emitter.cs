@@ -173,6 +173,13 @@ class Emitter
                     string final = string.Join("", parts);
                     return final;
                 }
+
+            case CIrCast cIrCast:
+                {
+                    string type = TypeToCType(cIrCast.Type);
+                    string value = EmitValue(cIrCast.Value);
+                    return $"(({type}){value})";
+                }
         }
 
         throw new UnreachableException();

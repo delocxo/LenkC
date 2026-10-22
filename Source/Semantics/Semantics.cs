@@ -282,6 +282,13 @@ class Semantics
                         type
                     );
                 }
+
+            case UnboundCastExpr unboundCastExpr:
+                {
+                    var symbol = ResolveSymbol(unboundCastExpr.Symbol);
+                    var value = CheckExpr(unboundCastExpr.Value).Expr;
+                    return new(new BoundCastExpr(symbol, value, unboundCastExpr.Position), symbol);
+                }
         }
 
         throw new UnreachableException($"Invalid expression: {expr.GetType().Name}");

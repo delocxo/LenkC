@@ -141,6 +141,12 @@ class Lowerer
                     return new CIrNative(parts);
                 }
 
+            case BoundCastExpr boundCastExpr:
+                {
+                    var value = LowerExpr(boundCastExpr.Value);
+                    return new CIrCast(boundCastExpr.Symbol, value);
+                }
+
             case ResolvedExpr resolvedExpr:
                 return LowerExpr(resolvedExpr.Expr);
         }

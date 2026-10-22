@@ -20,6 +20,8 @@ abstract record NativePart;
 record NativeText(string Text) : NativePart;
 record NativeExpr(Expr Expr) : NativePart;
 record BoundNativeExpr(TypeSymbol Symbol, List<NativePart> Parts, Position Position) : Expr(Position);
+record UnboundCastExpr(PSymbol Symbol, Expr Value, Position Position) : Expr(Position);
+record BoundCastExpr(TypeSymbol Symbol, Expr Value, Position Position) : Expr(Position);
 record ResolvedExpr(Expr Expr, TypeSymbol TypeSymbol) : Expr(Expr.Position);
 
 abstract class Stmt
