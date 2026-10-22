@@ -113,6 +113,7 @@ class Emitter
                         TokenType.Bang => $"!({value})",
                         TokenType.BitwiseAnd => $"&{value}",
                         TokenType.BackTick => $"*{value}",
+                        TokenType.BitwiseNot => $"~({value})",
                         _ => throw new UnreachableException()
                     };
                 }

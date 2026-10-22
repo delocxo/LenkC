@@ -152,6 +152,15 @@ class Semantics
                         else
                             throw new Error("Cannot deference a string or non-pointer", unaryExpr.Position);
                     }
+                    else if (unaryExpr.Op == TokenType.BitwiseNot)
+                    {
+                        if (type == TypeSymbol.Char || type == TypeSymbol.Bool)
+                            type = TypeSymbol.Int;
+                        else if (type is NumericSymbol n && !n.IsFloat)
+                            type = n.Bits < 32 ? TypeSymbol.Int : n;
+                        else
+                            throw new Error("Bitwise NOT requires an integer", unaryExpr.Position);
+                    }
                     else if (type is NumericSymbol n && !n.IsFloat && n.Bits < 32)
                         type = TypeSymbol.Int;
                     return new(unaryExpr with { Right = resolved.Expr }, type);
