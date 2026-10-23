@@ -1,10 +1,15 @@
 #include <stdlib.h>
 #include <stdint.h>
-float _lenkc_function_add__(float _lenkc_a_, float _lenkc_b_) {
-    return (_lenkc_a_ + _lenkc_b_);
+int32_t *_lenkc_function_malloc_int_(unsigned long long _lenkc_size_) {
+    int32_t *_lenkc_data_ = ((int32_t *)malloc(sizeof(int32_t) * _lenkc_size_));
+    return _lenkc_data_;
+}
+void _lenkc_function_free_int_(int32_t *_lenkc_data_) {
+    free(_lenkc_data_);
 }
 int32_t _lenkc_function_main__(int32_t _lenkc_argc_, char* *_lenkc_argv_) {
-    float _lenkc_x_ = (_lenkc_function_add__)(100, 100);
+    int32_t *_lenkc_data_ = (_lenkc_function_malloc_int_)(1);
+    (_lenkc_function_free_int_)(_lenkc_data_);
     return 0;
 }
 

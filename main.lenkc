@@ -1,8 +1,22 @@
-@float add(float a, float b) {
-    return a + b;
+@T` malloc<T>(ulong size)
+{
+    let T` data = cast(
+        T`, 
+        native(
+            void`, 
+            #malloc(sizeof(${cname(T)}) * ${size})#
+        )
+    );
+    return data;
+}
+
+@void free<T>(T` data)
+{
+    native(void, #free(${data});#);
 }
 
 @int main(int argc, string` argv) {
-    infer x = add(100, 100);
+    infer data = malloc::<int>(1);
+    free::<int>(data);
     return 0;
 }

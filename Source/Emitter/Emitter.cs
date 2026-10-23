@@ -222,6 +222,11 @@ class Emitter
                     string arguments = string.Join(", ", cIrCall.Arguments.Select(EmitValue));
                     return $"({target})({arguments})";
                 }
+
+            case CIrCName cIrCName:
+                {
+                    return TypeToCType(cIrCName.Type);
+                }
         }
 
         throw new UnreachableException();

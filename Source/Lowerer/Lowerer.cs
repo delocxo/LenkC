@@ -181,6 +181,11 @@ class Lowerer
                     return new CIrCall(target, arguments);
                 }
 
+            case BoundCNameExpr boundCNameExpr:
+                {
+                    return new CIrCName(boundCNameExpr.TypeSymbol);
+                }
+
             case ResolvedExpr resolvedExpr:
                 return LowerExpr(resolvedExpr.Expr);
         }

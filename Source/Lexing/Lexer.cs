@@ -23,7 +23,8 @@ class Lexer
             { "break", TokenType.Break },
             { "continue", TokenType.Continue },
             { "cast", TokenType.Cast },
-            { "return", TokenType.Return }
+            { "return", TokenType.Return },
+            { "cname", TokenType.CName }
         };
 
     static Dictionary<string, TokenType> s_symbols = new Dictionary<string, TokenType>()

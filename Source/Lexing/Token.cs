@@ -6,7 +6,7 @@
     While, Break, Continue, Function,
     Return, Use, Record, Enum, Import,
     For, In, Elif, Let, Infer, Native,
-    GlobalNative, Cast,
+    GlobalNative, Cast, CName,
 
     Add, Sub, Mul, Div, Mod,
     IsEqual, NotEqual, Less, Greater,

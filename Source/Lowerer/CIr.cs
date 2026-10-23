@@ -22,3 +22,4 @@ record CIrNativeValue(CIrValue Value) : CIrNativePart;
 record CIrNative(List<CIrNativePart> Parts) : CIrValue;
 record CIrCast(TypeSymbol Type, CIrValue Value) : CIrValue;
 record CIrCall(CIrValue Target, List<CIrValue> Arguments) : CIrValue;
+record CIrCName(TypeSymbol Type) : CIrValue;

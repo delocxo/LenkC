@@ -70,7 +70,7 @@ class Semantics
         }
         else if (stmt is ExprStmt exprStmt)
         {
-            if (exprStmt.Expr is not (AssignExpr or PointerAssignExpr or UnboundNativeExpr))
+            if (exprStmt.Expr is not (AssignExpr or PointerAssignExpr or UnboundNativeExpr or CallExpr))
                 throw new Error($"Expression statement can only be an assignment or call: {exprStmt.Expr.GetType().Name}", exprStmt.Position);
             return new ExprStmt(
                 CheckExpr(exprStmt.Expr).Expr,
@@ -173,9 +173,9 @@ class Semantics
         var returnType = semantics.ResolveSymbol(unboundFunctionStmt.ReturnType);
 
         if (returnType is not VoidSymbol &&
-            unboundFunctionStmt.Body.Count == 0 ||
-            unboundFunctionStmt.Body[^1] is not ReturnStmt returnStmt ||
-            returnStmt.Expr is null)
+            (unboundFunctionStmt.Body.Count == 0 ||
+             unboundFunctionStmt.Body[^1] is not ReturnStmt returnStmt ||
+             returnStmt.Expr is null))
         {
             throw new Error(
                 $"Non-void function '{unboundFunctionStmt.Name}' must have a final return with a value",
@@ -457,6 +457,12 @@ class Semantics
                     }
 
                     throw new Error("Only functions can be called", callExpr.Position);
+                }
+
+            case UnboundCNameExpr unboundCNameExpr:
+                {
+                    var type = ResolveSymbol(unboundCNameExpr.Symbol);
+                    return new(new BoundCNameExpr(type, unboundCNameExpr.Position), TypeSymbol.String);
                 }
         }
 

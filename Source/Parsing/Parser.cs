@@ -485,6 +485,16 @@ class Parser
 
             return new UnboundCastExpr(symbol, value, token.Position);
         }
+        else if (Match(TokenType.CName))
+        {
+            Expect(TokenType.LeftParen);
+
+            var symbol = ParseSymbol();
+
+            Expect(TokenType.RightParen);
+
+            return new UnboundCNameExpr(symbol, token.Position);
+        }
 
         throw ThrowUnexpected();
     }

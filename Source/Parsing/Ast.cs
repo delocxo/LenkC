@@ -23,6 +23,8 @@ record BoundNativeExpr(TypeSymbol Symbol, List<NativePart> Parts, Position Posit
 record UnboundCastExpr(PSymbol Symbol, Expr Value, Position Position) : Expr(Position);
 record BoundCastExpr(TypeSymbol Symbol, Expr Value, Position Position) : Expr(Position);
 record CallExpr(Expr Target, List<Expr> Arguments, Position Position) : Expr(Position);
+record UnboundCNameExpr(PSymbol Symbol, Position Position) : Expr(Position);
+record BoundCNameExpr(TypeSymbol TypeSymbol, Position Position) : Expr(Position);
 record ResolvedExpr(Expr Expr, TypeSymbol TypeSymbol) : Expr(Expr.Position);
 
 abstract class Stmt
