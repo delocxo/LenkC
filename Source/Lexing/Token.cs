@@ -6,7 +6,7 @@
     While, Break, Continue, Function,
     Return, Use, Record, Enum, Import,
     For, In, Elif, Let, Infer, Native,
-    GlobalNative, Cast, CName,
+    GlobalNative, Cast, CName, Fmt,
 
     Add, Sub, Mul, Div, Mod,
     IsEqual, NotEqual, Less, Greater,
@@ -17,7 +17,7 @@
     Equal, Semicolon, LeftBracket, RightBracket,
     LeftBrace, RightBrace, LeftParen, RightParen,
     Comma, Period, Hash, Arrow, At, BackTick,
-    Varadic, DoubleColon,
+    Varadic, DoubleColon, TripleQuotes,
 
     Eof,
 }

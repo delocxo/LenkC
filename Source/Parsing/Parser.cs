@@ -227,6 +227,12 @@ class Parser
     {
         List<Stmt> stmts = new List<Stmt>();
 
+        if (!Check(TokenType.LeftBrace))
+        {
+            stmts.Add(ParseStmt());
+            return stmts;
+        }
+
         Expect(TokenType.LeftBrace);
 
         while (NotAtEnd() && !Check(TokenType.RightBrace))
@@ -495,6 +501,16 @@ class Parser
 
             return new UnboundCNameExpr(symbol, token.Position);
         }
+        else if (Match(TokenType.Fmt))
+        {
+            Expect(TokenType.LeftParen);
+
+            var symbol = ParseSymbol();
+
+            Expect(TokenType.RightParen);
+
+            return new UnboundFmtExpr(symbol, token.Position);
+        }
 
         throw ThrowUnexpected();
     }
@@ -515,20 +531,20 @@ class Parser
                 continue;
             }
 
-            //     if (Check(TokenType.LeftBracket))
-            //     {
-            //         Position position = Current().Position;
+            if (Check(TokenType.LeftBracket))
+            {
+                Position position = Current().Position;
 
-            //         Expect(TokenType.LeftBracket);
+                Expect(TokenType.LeftBracket);
 
-            //         Expr index = ParseExpr();
+                Expr index = ParseExpr();
 
-            //         Expect(TokenType.RightBracket);
+                Expect(TokenType.RightBracket);
 
-            //         left = new IndexExpr(left, index, position);
+                left = new IndexExpr(left, index, position);
 
-            //         continue;
-            //     }
+                continue;
+            }
 
             //     if (Check(TokenType.Period))
             //     {
@@ -756,6 +772,9 @@ class Parser
 
             if (left is UnaryExpr unaryExpr && unaryExpr.Op is TokenType.BackTick)
                 return new PointerAssignExpr(unaryExpr, expr, unaryExpr.Position);
+
+            if (left is IndexExpr indexExpr)
+                return new IndexAssignExpr(indexExpr, expr);
 
             throw new Error("Invalid assign target", left.Position);
         }

@@ -25,6 +25,10 @@ record BoundCastExpr(TypeSymbol Symbol, Expr Value, Position Position) : Expr(Po
 record CallExpr(Expr Target, List<Expr> Arguments, Position Position) : Expr(Position);
 record UnboundCNameExpr(PSymbol Symbol, Position Position) : Expr(Position);
 record BoundCNameExpr(TypeSymbol TypeSymbol, Position Position) : Expr(Position);
+record UnboundFmtExpr(PSymbol Symbol, Position Position) : Expr(Position);
+record BoundFmtExpr(TypeSymbol TypeSymbol, Position Position) : Expr(Position);
+record IndexExpr(Expr Target, Expr Index, Position Position) : Expr(Position);
+record IndexAssignExpr(IndexExpr IndexExpr, Expr Value) : Expr(IndexExpr.Position);
 record ResolvedExpr(Expr Expr, TypeSymbol TypeSymbol) : Expr(Expr.Position);
 
 abstract class Stmt

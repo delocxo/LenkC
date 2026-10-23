@@ -227,6 +227,26 @@ class Emitter
                 {
                     return TypeToCType(cIrCName.Type);
                 }
+
+            case CIrFmt cIrFmt:
+                {
+                    return cIrFmt.Type.FormatSymbol!;
+                }
+
+            case CIrIndex cIrIndex:
+                {
+                    string target = EmitValue(cIrIndex.Target);
+                    string index = EmitValue(cIrIndex.Index);
+                    return $"{target}[{index}]";
+                }
+
+            case CIrIndexSet cIrIndexSet:
+                {
+                    string target = EmitValue(cIrIndexSet.Target);
+                    string index = EmitValue(cIrIndexSet.Index);
+                    string value = EmitValue(cIrIndexSet.Value);
+                    return $"{target}[{index}] = {value}";
+                }
         }
 
         throw new UnreachableException();

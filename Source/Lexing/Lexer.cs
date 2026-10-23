@@ -24,7 +24,8 @@ class Lexer
             { "continue", TokenType.Continue },
             { "cast", TokenType.Cast },
             { "return", TokenType.Return },
-            { "cname", TokenType.CName }
+            { "cname", TokenType.CName },
+            { "fmt", TokenType.Fmt }
         };
 
     static Dictionary<string, TokenType> s_symbols = new Dictionary<string, TokenType>()
@@ -103,7 +104,43 @@ class Lexer
 
             if (NotAtEnd(2))
             {
-                string tripleChar = $"{Char(0)}{Char(1)}{Char(2)}";
+                string tripleChar = $"{Char()}{Char(1)}{Char(2)}";
+
+                if (tripleChar == "\"\"\"")
+                {
+                    var position = _currentPos;
+
+                    Next();
+                    Next();
+                    Next();
+
+                    var content = new StringBuilder();
+                    bool terminated = false;
+
+                    while (NotAtEnd())
+                    {
+                        if (NotAtEnd(2) && Char() is '"' && Char(1) is '"' && Char(2) is '"')
+                        {
+                            Next();
+                            Next();
+                            Next();
+
+                            terminated = true;
+                            break;
+                        }
+
+                        content.Append(Char());
+                        Next();
+                    }
+
+                    if (!terminated)
+                        throw new Error("Unterminated triple-quoted string", _currentPos);
+
+                    tokens.Add(new Token(TokenType.String, content.ToString(), position));
+
+                    continue;
+                }
+
                 if (s_symbols.TryGetValue(tripleChar, out TokenType value))
                 {
                     tokens.Add(new Token(value, tripleChar, _currentPos));
@@ -116,7 +153,7 @@ class Lexer
 
             if (NotAtEnd(1))
             {
-                string doubleChar = $"{Char(0)}{Char(1)}";
+                string doubleChar = $"{Char()}{Char(1)}";
                 if (doubleChar == "//")
                 {
                     Next();

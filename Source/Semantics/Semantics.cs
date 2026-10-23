@@ -70,7 +70,13 @@ class Semantics
         }
         else if (stmt is ExprStmt exprStmt)
         {
-            if (exprStmt.Expr is not (AssignExpr or PointerAssignExpr or UnboundNativeExpr or CallExpr))
+            if (exprStmt.Expr is not (
+                AssignExpr or
+                PointerAssignExpr or
+                UnboundNativeExpr or
+                CallExpr or
+                IndexAssignExpr
+            ))
                 throw new Error($"Expression statement can only be an assignment or call: {exprStmt.Expr.GetType().Name}", exprStmt.Position);
             return new ExprStmt(
                 CheckExpr(exprStmt.Expr).Expr,
@@ -463,6 +469,48 @@ class Semantics
                 {
                     var type = ResolveSymbol(unboundCNameExpr.Symbol);
                     return new(new BoundCNameExpr(type, unboundCNameExpr.Position), TypeSymbol.String);
+                }
+
+            case UnboundFmtExpr unboundFmtExpr:
+                {
+                    var type = ResolveSymbol(unboundFmtExpr.Symbol);
+                    if (type.FormatSymbol == null)
+                        throw new Error("Type cannot be formatted", unboundFmtExpr.Position);
+                    return new(new BoundFmtExpr(type, unboundFmtExpr.Position), TypeSymbol.String);
+                }
+
+            case IndexExpr indexExpr:
+                {
+                    var target = CheckExpr(indexExpr.Target);
+                    var index = CheckExpr(indexExpr.Index);
+                    if (target.TypeSymbol is not PointerSymbol pointer)
+                        throw new Error("Cannot index a non-pointer", indexExpr.Position);
+                    if (pointer.Inner is VoidSymbol)
+                        throw new Error("Cannot index a void pointer", indexExpr.Position);
+                    return new(new IndexExpr(target.Expr, index.Expr, indexExpr.Position), pointer.Inner);
+                }
+
+            case IndexAssignExpr indexAssignExpr:
+                {
+                    var indexExpr = indexAssignExpr.IndexExpr;
+                    var target = CheckExpr(indexExpr.Target);
+                    var index = CheckExpr(indexExpr.Index);
+                    var value = CheckExpr(indexAssignExpr.Value);
+
+                    if (target.TypeSymbol is not PointerSymbol pointer)
+                        throw new Error("Cannot index a non-pointer", indexExpr.Position);
+
+                    if (pointer.Inner is VoidSymbol)
+                        throw new Error("Cannot index a void pointer", indexExpr.Position);
+
+                    return new(new IndexAssignExpr(
+                        new(
+                            target.Expr,
+                            index.Expr,
+                            indexExpr.Position
+                        ),
+                        value.Expr
+                    ), value.TypeSymbol);
                 }
         }
 

@@ -186,6 +186,28 @@ class Lowerer
                     return new CIrCName(boundCNameExpr.TypeSymbol);
                 }
 
+            case BoundFmtExpr boundFmtExpr:
+                {
+                    return new CIrFmt(boundFmtExpr.TypeSymbol);
+                }
+
+            case IndexExpr indexExpr:
+                {
+                    return new CIrIndex(
+                        LowerExpr(indexExpr.Target),
+                        LowerExpr(indexExpr.Index)
+                    );
+                }
+
+            case IndexAssignExpr indexAssignExpr:
+                {
+                    return new CIrIndexSet(
+                        LowerExpr(indexAssignExpr.IndexExpr.Target),
+                        LowerExpr(indexAssignExpr.IndexExpr.Index),
+                        LowerExpr(indexAssignExpr.Value)
+                    );
+                }
+
             case ResolvedExpr resolvedExpr:
                 return LowerExpr(resolvedExpr.Expr);
         }
