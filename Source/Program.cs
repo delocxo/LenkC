@@ -21,6 +21,7 @@ try
 
     var semantics = new Semantics();
     var checkedStmts = semantics.Check(stmts);
+    var mainInfo = semantics.CheckMain();
 
     var lowerer = new Lowerer();
     lowerer.LowererStmts(checkedStmts);
@@ -29,7 +30,7 @@ try
     emitter.EmitInstructions();
 
     var generator = new SourceGenerator(emitter);
-    generator.Generate(outputPath);
+    generator.Generate(outputPath, mainInfo.Item1, mainInfo.Item2);
 
     File.WriteAllText(outputPath, generator.Result.ToString());
 }

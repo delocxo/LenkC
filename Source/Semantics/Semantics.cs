@@ -3,13 +3,36 @@ using System.Numerics;
 
 class Semantics
 {
+    public static Dictionary<string, (BoundFunctionStmt Function, FunctionSymbol Type)> BoundFunctions { get; } = [];
+    static Dictionary<string, UnboundFunctionStmt> s_functions = [];
+
     int _loopDepth = 0;
 
     public List<Stmt> Check(List<Stmt> stmts)
     {
         List<Stmt> newStmts = [];
+
+        foreach (Stmt stmt in stmts)
+            if (stmt is UnboundFunctionStmt unboundFunction)
+            {
+                if (!s_functions.TryAdd(unboundFunction.Name, unboundFunction))
+                    throw new Error($"'{unboundFunction.Name}' is an already existing function", unboundFunction.Position);
+
+                HashSet<string> typeParameters = [];
+                foreach (var parameter in unboundFunction.TypeParameters)
+                    if (!typeParameters.Add(parameter))
+                        throw new Error($"'{parameter}' is a duplicate function type parameter", unboundFunction.Position);
+
+                HashSet<string> parameters = [];
+                foreach (var parameter in unboundFunction.Parameters)
+                    if (!parameters.Add(parameter.Name))
+                        throw new Error($"'{parameter.Name}' is a duplicate function parameter", parameter.Position);
+
+            }
+
         foreach (var stmt in stmts)
             newStmts.Add(CheckStmt(stmt));
+
         return newStmts;
     }
 
@@ -56,33 +79,36 @@ class Semantics
         }
         else if (stmt is IfStmt ifStmt)
         {
+            List<IfBranch> branches = [];
             foreach (var branch in ifStmt.IfBranches)
             {
                 Scopes.BeginScope();
-                branch.Expr = CheckExpr(branch.Expr).Expr;
-                branch.Stmts = Check(branch.Stmts);
+                var expr = CheckExpr(branch.Expr).Expr;
+                var stmts = Check(branch.Stmts);
                 Scopes.EndScope();
+                branches.Add(new IfBranch(expr, stmts));
             }
 
+            List<Stmt>? elseBranch = null;
             if (ifStmt.ElseBranch != null)
             {
                 Scopes.BeginScope();
-                ifStmt.ElseBranch = Check(ifStmt.ElseBranch);
+                elseBranch = Check(ifStmt.ElseBranch);
                 Scopes.EndScope();
             }
 
-            return ifStmt;
+            return new IfStmt(branches, elseBranch, ifStmt.Position);
         }
         else if (stmt is WhileStmt whileStmt)
         {
             var branch = whileStmt.Branch;
-            branch.Expr = CheckExpr(branch.Expr).Expr;
+            var expr = CheckExpr(branch.Expr).Expr;
             Scopes.BeginScope();
             _loopDepth++;
-            branch.Stmts = Check(branch.Stmts);
+            var stmts = Check(branch.Stmts);
             _loopDepth--;
             Scopes.EndScope();
-            return whileStmt;
+            return new WhileStmt(new IfBranch(expr, stmts), whileStmt.Position);
         }
         else if (stmt is BreakStmt breakStmt)
         {
@@ -96,8 +122,104 @@ class Semantics
                 throw new Error("Cannot use continue outside a loop", continueStmt.Position);
             return continueStmt;
         }
+        else if (stmt is UnboundFunctionStmt unboundFunctionStmt)
+        {
+            if (!Scopes.AtGlobalLevel)
+                throw new Error($"Function '{unboundFunctionStmt.Name}' can only be declared at the top level", unboundFunctionStmt.Position);
+            return unboundFunctionStmt;
+        }
+        else if (stmt is ReturnStmt returnStmt)
+        {
+            if (Scopes.FunctionLevel == 0)
+                throw new Error("Cannot use a return outside a function", returnStmt.Position);
+            if (returnStmt.Expr == null)
+                return returnStmt;
+            return new ReturnStmt(
+                CheckExpr(returnStmt.Expr),
+                returnStmt.Position
+            );
+        }
 
         throw new UnreachableException($"Invalid statement: {stmt.GetType().Name}");
+    }
+
+    (FunctionSymbol Symbol, string Name) BoundFunction(UnboundFunctionStmt unboundFunctionStmt, List<TypeSymbol> typeArguments, Position position)
+    {
+        if (typeArguments.Count != unboundFunctionStmt.TypeParameters.Count)
+            throw new Error($"'{unboundFunctionStmt.Name}' expects {unboundFunctionStmt.TypeParameters.Count} argument(s), got {typeArguments.Count}", unboundFunctionStmt.Position);
+
+        string key = $"function_{unboundFunctionStmt.Name}_" + string.Join("_", typeArguments.Select(TypeKey));
+
+        if (BoundFunctions.TryGetValue(key, out var bound))
+            return (bound.Type, key);
+
+        Dictionary<string, TypeSymbol> pairedTypeArguments = unboundFunctionStmt.TypeParameters
+            .Zip(typeArguments)
+            .ToDictionary(x => x.First, x => x.Second);
+
+        Dictionary<string, TypeSymbol?> previousTypes = [];
+
+        foreach (var pair in pairedTypeArguments)
+        {
+            TypeRegistery.Registery.TryGetValue(pair.Key, out var previous);
+            previousTypes.Add(pair.Key, previous);
+            TypeRegistery.Registery[pair.Key] = pair.Value;
+        }
+
+        Scopes.BeginScope();
+
+        Semantics semantics = new Semantics();
+
+        var returnType = semantics.ResolveSymbol(unboundFunctionStmt.ReturnType);
+
+        if (returnType is not VoidSymbol &&
+            unboundFunctionStmt.Body.Count == 0 ||
+            unboundFunctionStmt.Body[^1] is not ReturnStmt returnStmt ||
+            returnStmt.Expr is null)
+        {
+            throw new Error(
+                $"Non-void function '{unboundFunctionStmt.Name}' must have a final return with a value",
+                unboundFunctionStmt.Position
+            );
+        }
+
+        var boundParameters = unboundFunctionStmt.Parameters
+            .Select(x =>
+            {
+                var type = semantics.ResolveSymbol(x.Symbol);
+                return new BoundField(type, x.Name);
+            }).ToList();
+
+        foreach (var boundParam in boundParameters)
+            Scopes.Declare(boundParam.Name, boundParam.Type, unboundFunctionStmt.Position);
+
+        FunctionSymbol functionSymbol = new(returnType, boundParameters.Select(x => x.Type).ToList());
+
+        List<Stmt> newBody = [];
+
+        BoundFunctions[key] = (new(
+            returnType,
+            unboundFunctionStmt.Name,
+            boundParameters,
+            newBody,
+            unboundFunctionStmt.Position
+        ), functionSymbol);
+
+        Scopes.FunctionLevel++;
+
+        newBody.AddRange(semantics.Check(unboundFunctionStmt.Body));
+
+        Scopes.FunctionLevel--;
+
+        Scopes.EndScope();
+
+        foreach (var pair in previousTypes)
+            if (pair.Value == null)
+                TypeRegistery.Registery.Remove(pair.Key);
+            else
+                TypeRegistery.Registery[pair.Key] = pair.Value;
+
+        return (functionSymbol, key);
     }
 
     ResolvedExpr CheckExpr(Expr expr)
@@ -123,13 +245,26 @@ class Semantics
                 return new(nullExpr, TypeSymbol.Null);
 
             case NameExpr nameExpr:
-                return new(
-                    nameExpr,
-                    Scopes.Resolve(
-                        nameExpr.Name,
-                        nameExpr.Position
-                    ).TypeSymbol
-                );
+                {
+                    var typeArguments = nameExpr.TypeArguments
+                            .Select(ResolveSymbol)
+                            .ToList();
+
+                    if (s_functions.TryGetValue(nameExpr.Name, out var function))
+                    {
+                        var bound = BoundFunction(function, typeArguments, nameExpr.Position);
+                        return new(nameExpr with { Name = bound.Name }, bound.Symbol);
+                    }
+
+                    if (Scopes.TryResolve(nameExpr.Name, out var local))
+                    {
+                        if (nameExpr.TypeArguments.Count > 0)
+                            throw new Error("Variable does not support generics", nameExpr.Position);
+                        return new(nameExpr, local!.TypeSymbol);
+                    }
+
+                    break;
+                }
 
             case UnaryExpr unaryExpr:
                 {
@@ -298,12 +433,37 @@ class Semantics
                     var value = CheckExpr(unboundCastExpr.Value).Expr;
                     return new(new BoundCastExpr(symbol, value, unboundCastExpr.Position), symbol);
                 }
+
+            case CallExpr callExpr:
+                {
+                    var target = CheckExpr(callExpr.Target);
+                    var arguments = callExpr.Arguments
+                        .Select(x => CheckExpr(x).Expr)
+                        .ToList();
+
+                    if (target.TypeSymbol is FunctionSymbol functionSymbol)
+                    {
+                        if (arguments.Count != functionSymbol.ParameterTypes.Count)
+                            throw new Error(
+                                $"Function expects {functionSymbol.ParameterTypes.Count} argument(s), got {arguments.Count}",
+                                callExpr.Position
+                            );
+
+                        return new(new CallExpr(
+                            target.Expr,
+                            arguments,
+                            callExpr.Position
+                        ), functionSymbol.ReturnType);
+                    }
+
+                    throw new Error("Only functions can be called", callExpr.Position);
+                }
         }
 
         throw new UnreachableException($"Invalid expression: {expr.GetType().Name}");
     }
 
-    TypeSymbol ResolveSymbol(PSymbol pSymbol)
+    public TypeSymbol ResolveSymbol(PSymbol pSymbol)
     {
         switch (pSymbol)
         {
@@ -316,6 +476,17 @@ class Semantics
 
             case PointerPSymbol pointerPSymbol:
                 return new PointerSymbol(ResolveSymbol(pointerPSymbol.InnerSymbol));
+
+            case FunctionPSymbol functionPSymbol:
+                {
+                    var parameterTypes = functionPSymbol.Parameters
+                        .Select(ResolveSymbol)
+                        .ToList();
+
+                    var returnType = ResolveSymbol(functionPSymbol.ReturnType);
+
+                    return new FunctionSymbol(returnType, parameterTypes);
+                }
 
             default:
                 throw new NotImplementedException();
@@ -347,5 +518,36 @@ class Semantics
             right = TypeSymbol.Int;
 
         return left.Promote(right);
+    }
+
+    string TypeKey(TypeSymbol type) => type switch
+    {
+        PointerSymbol pointer => $"ptr_{TypeKey(pointer.Inner)}_end",
+        FunctionSymbol function =>
+            $"fn_{function.ParameterTypes.Count}_" +
+            string.Join("_", function.ParameterTypes.Select(TypeKey)) +
+            $"_ret_{TypeKey(function.ReturnType)}_end",
+        _ => type.Name
+    };
+
+    public (string, int) CheckMain()
+    {
+        if (!s_functions.TryGetValue("main", out var mainfunction))
+            throw new Error("Program must declare a main function", null);
+
+        if (mainfunction.TypeParameters.Count > 0)
+            throw new Error("Main cannot be generic", mainfunction.Position);
+
+        if (mainfunction.Parameters.Count is not (0 or 2))
+            throw new Error("Main can only take 0 or 2 parameters", mainfunction.Position);
+
+        var returnType = ResolveSymbol(mainfunction.ReturnType);
+
+        if (returnType != TypeSymbol.Int)
+            throw new Error("Main must return an int", mainfunction.Position);
+
+        var bound = BoundFunction(mainfunction, [], mainfunction.Position);
+
+        return (bound.Name, mainfunction.Parameters.Count);
     }
 }

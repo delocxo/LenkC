@@ -10,7 +10,7 @@ record StringExpr(string Value, Position Position) : Expr(Position);
 record CharExpr(char Value, Position Position) : Expr(Position);
 record BoolExpr(bool Value, Position Position) : Expr(Position);
 record NullExpr(Position Position) : Expr(Position);
-record NameExpr(string Name, Position Position) : Expr(Position);
+record NameExpr(string Name, List<PSymbol> TypeArguments, Position Position) : Expr(Position);
 record UnaryExpr(Expr Right, TokenType Op, Position Position) : Expr(Position);
 record BinaryExpr(Expr Left, Expr Right, TokenType Op, Position Position) : Expr(Position);
 record AssignExpr(string Name, Expr Value, Position Position) : Expr(Position);
@@ -22,6 +22,7 @@ record NativeExpr(Expr Expr) : NativePart;
 record BoundNativeExpr(TypeSymbol Symbol, List<NativePart> Parts, Position Position) : Expr(Position);
 record UnboundCastExpr(PSymbol Symbol, Expr Value, Position Position) : Expr(Position);
 record BoundCastExpr(TypeSymbol Symbol, Expr Value, Position Position) : Expr(Position);
+record CallExpr(Expr Target, List<Expr> Arguments, Position Position) : Expr(Position);
 record ResolvedExpr(Expr Expr, TypeSymbol TypeSymbol) : Expr(Expr.Position);
 
 abstract class Stmt
@@ -131,4 +132,74 @@ class ContinueStmt : Stmt
     public ContinueStmt(Position position) : base(position)
     {
     }
+}
+
+class UnboundField
+{
+    public UnboundField(PSymbol symbol, string name, Position position)
+    {
+        Symbol = symbol;
+        Name = name;
+        Position = position;
+    }
+
+    public PSymbol Symbol { get; }
+    public string Name { get; }
+    public Position Position { get; }
+}
+
+class BoundField
+{
+    public BoundField(TypeSymbol type, string name)
+    {
+        Type = type;
+        Name = name;
+    }
+
+    public TypeSymbol Type { get; }
+    public string Name { get; }
+}
+
+class UnboundFunctionStmt : Stmt
+{
+    public UnboundFunctionStmt(PSymbol returnType, string name, List<string> typeParameters, List<UnboundField> parameters, List<Stmt> body, Position position) : base(position)
+    {
+        ReturnType = returnType;
+        Name = name;
+        TypeParameters = typeParameters;
+        Parameters = parameters;
+        Body = body;
+    }
+
+    public PSymbol ReturnType { get; }
+    public string Name { get; }
+    public List<string> TypeParameters { get; }
+    public List<UnboundField> Parameters { get; }
+    public List<Stmt> Body { get; }
+}
+
+class BoundFunctionStmt : Stmt
+{
+    public BoundFunctionStmt(TypeSymbol returnType, string name, List<BoundField> parameters, List<Stmt> body, Position position) : base(position)
+    {
+        ReturnType = returnType;
+        Name = name;
+        Parameters = parameters;
+        Body = body;
+    }
+
+    public TypeSymbol ReturnType { get; }
+    public string Name { get; }
+    public List<BoundField> Parameters { get; }
+    public List<Stmt> Body { get; }
+}
+
+class ReturnStmt : Stmt
+{
+    public ReturnStmt(Expr? expr, Position position) : base(position)
+    {
+        Expr = expr;
+    }
+
+    public Expr? Expr { get; }
 }

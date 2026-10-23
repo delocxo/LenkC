@@ -7,7 +7,19 @@ static class TypeRegistery
     public static void Register(TypeSymbol typeSymbol, Position? position = null)
     {
         if (!Registery.TryAdd(typeSymbol.Name, typeSymbol))
-            throw new Error($"Type {typeSymbol.Name} is already an existing type", position);
+            throw new Error($"Type '{typeSymbol.Name}' is already an existing type", position);
+    }
+
+    public static void Register(string name, TypeSymbol typeSymbol, Position? position = null)
+    {
+        if (!Registery.TryAdd(name, typeSymbol))
+            throw new Error($"Type '{name}' is already an existing type", position);
+    }
+
+    public static void Deregister(string name, Position? position = null)
+    {
+        if (!Registery.Remove(name))
+            throw new Error($"Type '{name}' does not exist", position);
     }
 
     public static void RegisterPrimitives()

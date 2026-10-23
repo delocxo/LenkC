@@ -15,14 +15,15 @@ class Lexer
             { "let", TokenType.Let },
             { "infer", TokenType.Infer },
             { "native", TokenType.Native },
-            { "gnative", TokenType.GlobalNative },
+            // { "gnative", TokenType.GlobalNative }, SCRAPED
             { "null", TokenType.Null },
             { "if", TokenType.If },
             { "else", TokenType.Else },
             { "while", TokenType.While },
             { "break", TokenType.Break },
             { "continue", TokenType.Continue },
-            { "cast", TokenType.Cast }
+            { "cast", TokenType.Cast },
+            { "return", TokenType.Return }
         };
 
     static Dictionary<string, TokenType> s_symbols = new Dictionary<string, TokenType>()
@@ -60,7 +61,9 @@ class Lexer
             { "|", TokenType.BitwiseOr },
             { "=>", TokenType.Arrow },
             { "@", TokenType.At },
-            { "`", TokenType.BackTick }
+            { "`", TokenType.BackTick },
+            { "...", TokenType.Varadic },
+            { "::", TokenType.DoubleColon }
         };
 
     public static string? GetKeywordFromType(TokenType type)
@@ -95,6 +98,19 @@ class Lexer
             {
                 Next();
                 continue;
+            }
+
+            if (NotAtEnd(2))
+            {
+                string tripleChar = $"{Char(0)}{Char(1)}{Char(2)}";
+                if (s_symbols.TryGetValue(tripleChar, out TokenType value))
+                {
+                    tokens.Add(new Token(value, tripleChar, _currentPos));
+                    Next();
+                    Next();
+                    Next();
+                    continue;
+                }
             }
 
             if (NotAtEnd(1))

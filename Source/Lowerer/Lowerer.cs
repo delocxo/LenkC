@@ -41,14 +41,14 @@ class Lowerer
                         var condition = LowerExpr(branch.Expr);
                         Instructions.Add(new CIrControlFlowStart(name, condition));
                         LowererStmts(branch.Stmts);
-                        Instructions.Add(new CIrControlFlowEnd());
+                        Instructions.Add(new CIrEnd());
                     }
 
                     if (ifStmt.ElseBranch != null)
                     {
                         Instructions.Add(new CIrControlFlowStart("else", null));
                         LowererStmts(ifStmt.ElseBranch);
-                        Instructions.Add(new CIrControlFlowEnd());
+                        Instructions.Add(new CIrEnd());
                     }
 
                     return;
@@ -60,7 +60,7 @@ class Lowerer
                     var condition = LowerExpr(branch.Expr);
                     Instructions.Add(new CIrControlFlowStart("while", condition));
                     LowererStmts(branch.Stmts);
-                    Instructions.Add(new CIrControlFlowEnd());
+                    Instructions.Add(new CIrEnd());
                     return;
                 }
 
@@ -71,6 +71,31 @@ class Lowerer
             case ContinueStmt:
                 Instructions.Add(new CIrContinue());
                 return;
+
+            case UnboundFunctionStmt unboundFunctionStmt:
+                {
+                    Semantics.BoundFunctions
+                        .Where(x => x.Value.Function.Name == unboundFunctionStmt.Name)
+                        .ToList()
+                        .ForEach(x =>
+                        {
+                            Instructions.Add(new CIrFunction(x.Value.Function, x.Key));
+                            LowererStmts(x.Value.Function.Body);
+                            Instructions.Add(new CIrEnd());
+                        });
+                    return;
+                }
+
+            case ReturnStmt returnStmt:
+                {
+                    if (returnStmt.Expr == null)
+                    {
+                        Instructions.Add(new CIrReturn(null));
+                        return;
+                    }
+                    Instructions.Add(new CIrReturn(LowerExpr(returnStmt.Expr)));
+                    return;
+                }
         }
 
         throw new UnreachableException();
@@ -145,6 +170,15 @@ class Lowerer
                 {
                     var value = LowerExpr(boundCastExpr.Value);
                     return new CIrCast(boundCastExpr.Symbol, value);
+                }
+
+            case CallExpr callExpr:
+                {
+                    var target = LowerExpr(callExpr.Target);
+                    var arguments = callExpr.Arguments
+                        .Select(LowerExpr)
+                        .ToList();
+                    return new CIrCall(target, arguments);
                 }
 
             case ResolvedExpr resolvedExpr:

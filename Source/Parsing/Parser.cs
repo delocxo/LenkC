@@ -35,9 +35,13 @@ class Parser
         if (Check(TokenType.While))
             return ParseWhile();
         if (Check(TokenType.Break))
-            return ParsBreak();
+            return ParseBreak();
         if (Check(TokenType.Continue))
-            return ParsContinue();
+            return ParseContinue();
+        if (Check(TokenType.At))
+            return ParseFunction();
+        if (Check(TokenType.Return))
+            return ParseReturn();
         return ParseExprStmt();
     }
 
@@ -110,18 +114,72 @@ class Parser
         return new(branch, position);
     }
 
-    BreakStmt ParsBreak()
+    BreakStmt ParseBreak()
     {
         Position position = PosNext();
         Expect(TokenType.Semicolon);
         return new(position);
     }
 
-    ContinueStmt ParsContinue()
+    ContinueStmt ParseContinue()
     {
         Position position = PosNext();
         Expect(TokenType.Semicolon);
         return new(position);
+    }
+
+    UnboundFunctionStmt ParseFunction()
+    {
+        UnboundField ParseParameter()
+        {
+            Position pos = Current().Position;
+            var symbol = ParseSymbol();
+            string name = ParseName("Expected parameter name");
+            return new(symbol, name, pos);
+        }
+
+        Position position = PosNext();
+
+        var returnSymbol = ParseSymbol();
+
+        string name = ParseName();
+
+        List<string> typeParameters = [];
+
+        if (Check(TokenType.Less))
+            typeParameters = ParseNames(TokenType.Less, TokenType.Greater);
+
+        Expect(TokenType.LeftParen);
+
+        List<UnboundField> parameters = [];
+
+        if (!Check(TokenType.RightParen))
+        {
+            parameters.Add(ParseParameter());
+
+            while (Match(TokenType.Comma))
+                parameters.Add(ParseParameter());
+        }
+
+        Expect(TokenType.RightParen);
+
+        var body = ParseBody();
+
+        return new(returnSymbol, name, typeParameters, parameters, body, position);
+    }
+
+    ReturnStmt ParseReturn()
+    {
+        Position position = PosNext();
+
+        if (Match(TokenType.Semicolon))
+            return new ReturnStmt(null, position);
+
+        Expr expr = ParseExpr();
+
+        Expect(TokenType.Semicolon);
+
+        return new(expr, position);
     }
 
 
@@ -197,6 +255,23 @@ class Parser
         return names;
     }
 
+    List<PSymbol> ParseTypeParameters()
+    {
+        if (!Match(TokenType.DoubleColon))
+            return [];
+
+        Expect(TokenType.Less);
+
+        List<PSymbol> names = [ParseSymbol()];
+
+        while (Match(TokenType.Comma))
+            names.Add(ParseSymbol());
+
+        Expect(TokenType.Greater);
+
+        return names;
+    }
+
     List<string> ParseNames(TokenType start, TokenType end)
     {
         Expect(start);
@@ -234,9 +309,39 @@ class Parser
         //     return new ArrayPSymbol(innerSymbol, position);
         // }
 
-        string name = ParseName("Expected type name");
+        PSymbol symbol;
 
-        PSymbol symbol = new NamePSymbol(name, position);
+        if (Match(TokenType.LeftParen))
+        {
+            symbol = ParseSymbol();
+            Expect(TokenType.RightParen);
+        }
+        else if (Match(TokenType.At))
+        {
+            Expect(TokenType.LeftParen);
+
+            List<PSymbol> parameters = [];
+
+            if (!Check(TokenType.RightParen))
+            {
+                do
+                    parameters.Add(ParseSymbol());
+                while (Match(TokenType.Comma));
+            }
+
+            Expect(TokenType.RightParen);
+
+            Expect(TokenType.Arrow);
+
+            PSymbol returnType = ParseSymbol();
+
+            symbol = new FunctionPSymbol(returnType, parameters, position);
+        }
+        else
+        {
+            string name = ParseName("Expected type name");
+            symbol = new NamePSymbol(name, position);
+        }
 
         while (Match(TokenType.BackTick))
             symbol = new PointerPSymbol(symbol, position);
@@ -340,7 +445,8 @@ class Parser
             return new BoolExpr(false, token.Position);
         else if (Match(TokenType.Identifier))
         {
-            return new NameExpr(token.Lexeme, token.Position);
+            List<PSymbol> typeParameters = ParseTypeParameters();
+            return new NameExpr(token.Lexeme, typeParameters, token.Position);
         }
         else if (Match(TokenType.Null))
             return new NullExpr(token.Position);
@@ -386,49 +492,49 @@ class Parser
     Expr ParsePostfix()
     {
         Expr left = ParsePrimary();
-        // while (Check(TokenType.LeftParen, TokenType.LeftBracket, TokenType.Period))
-        // {
-        //     if (Check(TokenType.LeftParen))
-        //     {
-        //         Position position = Current().Position;
+        while (Check(TokenType.LeftParen, TokenType.LeftBracket, TokenType.Period))
+        {
+            if (Check(TokenType.LeftParen))
+            {
+                Position position = Current().Position;
 
-        //         List<Expr> args = ParseArgs(TokenType.LeftParen, TokenType.RightParen);
+                List<Expr> args = ParseArgs(TokenType.LeftParen, TokenType.RightParen);
 
-        //         left = new CallExpr(left, args, position);
+                left = new CallExpr(left, args, position);
 
-        //         continue;
-        //     }
+                continue;
+            }
 
-        //     if (Check(TokenType.LeftBracket))
-        //     {
-        //         Position position = Current().Position;
+            //     if (Check(TokenType.LeftBracket))
+            //     {
+            //         Position position = Current().Position;
 
-        //         Expect(TokenType.LeftBracket);
+            //         Expect(TokenType.LeftBracket);
 
-        //         Expr index = ParseExpr();
+            //         Expr index = ParseExpr();
 
-        //         Expect(TokenType.RightBracket);
+            //         Expect(TokenType.RightBracket);
 
-        //         left = new IndexExpr(left, index, position);
+            //         left = new IndexExpr(left, index, position);
 
-        //         continue;
-        //     }
+            //         continue;
+            //     }
 
-        //     if (Check(TokenType.Period))
-        //     {
-        //         Position position = Current().Position;
+            //     if (Check(TokenType.Period))
+            //     {
+            //         Position position = Current().Position;
 
-        //         Next();
+            //         Next();
 
-        //         string name = ParseName();
+            //         string name = ParseName();
 
-        //         left = new MemberExpr(left, name, position);
+            //         left = new MemberExpr(left, name, position);
 
-        //         continue;
-        //     }
+            //         continue;
+            //     }
 
-        //     break;
-        // }
+            break;
+        }
         return left;
     }
 

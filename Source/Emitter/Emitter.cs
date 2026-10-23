@@ -8,7 +8,7 @@ class Emitter
     public StringBuilder Ouput { get; } = new();
     Lowerer _lowerer;
 
-    int _indentLevel = 1;
+    int _indentLevel = 0;
     int _indentSize = 4;
     int _ip = 0;
 
@@ -40,9 +40,9 @@ class Emitter
         {
             case CIrVariable cIrVariable:
                 {
-                    string cName = TypeToCType(cIrVariable.Type);
+                    string cName = TypeToCType(cIrVariable.Type, GetMangledName(cIrVariable.Name));
                     string value = EmitValue(cIrVariable.Value);
-                    Emit($"{cName} {GetMangledName(cIrVariable.Name)} = {value};");
+                    Emit($"{cName} = {value};");
                     break;
                 }
 
@@ -65,7 +65,7 @@ class Emitter
 
                     _indentLevel++;
 
-                    EmitInstructionsUntil<CIrControlFlowEnd>();
+                    EmitInstructionsUntil<CIrEnd>();
 
                     _indentLevel--;
 
@@ -80,6 +80,40 @@ class Emitter
             case CIrContinue:
                 Emit("continue;");
                 break;
+
+            case CIrFunction cIrFunction:
+                {
+                    string name = TypeToCType(cIrFunction.Function.ReturnType, GetMangledName(cIrFunction.Name));
+
+                    var parameters = cIrFunction.Function.Parameters
+                        .Select(x => TypeToCType(x.Type, GetMangledName(x.Name)));
+
+                    var stringParameters = string.Join(", ", parameters);
+
+                    Emit($"{name}({stringParameters}) {{");
+
+                    _indentLevel++;
+
+                    EmitInstructionsUntil<CIrEnd>();
+
+                    _indentLevel--;
+
+                    Emit("}");
+
+                    break;
+                }
+
+            case CIrReturn cIrReturn:
+                {
+                    if (cIrReturn.Value == null)
+                    {
+                        Emit("return;");
+                        break;
+                    }
+                    string value = EmitValue(cIrReturn.Value);
+                    Emit($"return {value};");
+                    break;
+                }
         }
     }
 
@@ -181,6 +215,13 @@ class Emitter
                     string value = EmitValue(cIrCast.Value);
                     return $"(({type}){value})";
                 }
+
+            case CIrCall cIrCall:
+                {
+                    string target = EmitValue(cIrCall.Target);
+                    string arguments = string.Join(", ", cIrCall.Arguments.Select(EmitValue));
+                    return $"({target})({arguments})";
+                }
         }
 
         throw new UnreachableException();
@@ -193,8 +234,8 @@ class Emitter
         .AppendLine(line);
     }
 
-    string GetMangledName(string name)
-        => $"_variable_{name}_";
+    public static string GetMangledName(string name)
+        => $"_lenkc_{name}_";
 
     string ToCString(string str)
         => str
@@ -209,12 +250,26 @@ class Emitter
             .Replace("\e", "\\e")
             .Replace("\r", "\\r");
 
-    string TypeToCType(TypeSymbol typeSymbol)
+    public static string TypeToCType(TypeSymbol typeSymbol, string? name = null)
     {
         if (typeSymbol is PointerSymbol pointerSymbol)
         {
-            return $"{TypeToCType(pointerSymbol.Inner)}*";
+            return TypeToCType(pointerSymbol.Inner, $"*{name}");
         }
-        return typeSymbol.CName;
+        if (typeSymbol is FunctionSymbol functionSymbol)
+        {
+            var parameters = functionSymbol.ParameterTypes
+                .Select(x => TypeToCType(x));
+
+            string parameterList = string.Join(", ", parameters);
+
+            if (parameterList.Length == 0)
+                parameterList = "void";
+
+            var returnType = TypeToCType(functionSymbol.ReturnType);
+
+            return $"{returnType} (*{name})({parameterList})";
+        }
+        return name == null ? typeSymbol.CName : $"{typeSymbol.CName} {name}";
     }
 }

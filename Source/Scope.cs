@@ -14,11 +14,12 @@ static class Scopes
 {
     static Stack<Dictionary<string, Local>> _scopes = new([new()]);
 
-    public static bool AtGlobalLevel => _scopes.Count == 1;
+    public static bool AtGlobalLevel => _scopes.Count == 1 /* || FunctionLevel > 0*/;
+    public static int FunctionLevel = 0;
 
     public static Local Declare(string name, TypeSymbol typeSymbol, Position position)
     {
-        if (TryResolve(name, out _))
+        if (_scopes.Peek().ContainsKey(name))
             throw new Error($"'{name}' has already been declared", position);
 
         Local local = new Local(name, typeSymbol);

@@ -67,3 +67,4 @@ record NullSymbol() : TypeSymbol("null", "NULL", "%p");
 record CharSymbol() : TypeSymbol("char", "char", "%c");
 record VoidSymbol() : TypeSymbol("void", "void", null);
 record PointerSymbol(TypeSymbol Inner) : TypeSymbol("", "", "%p");
+record FunctionSymbol(TypeSymbol ReturnType, List<TypeSymbol> ParameterTypes) : TypeSymbol("", "", null);

@@ -2,9 +2,11 @@ abstract record CIrInstruction;
 record CIrVariable(TypeSymbol Type, string Name, CIrValue Value) : CIrInstruction;
 record CIrValueStmt(CIrValue Value) : CIrInstruction;
 record CIrControlFlowStart(string Name, CIrValue? Condition) : CIrInstruction;
-record CIrControlFlowEnd : CIrInstruction;
+record CIrEnd : CIrInstruction;
 record CIrBreak : CIrInstruction;
 record CIrContinue : CIrInstruction;
+record CIrFunction(BoundFunctionStmt Function, string Name) : CIrInstruction;
+record CIrReturn(CIrValue? Value) : CIrInstruction;
 
 abstract record CIrValue;
 record CIrLiteral(object Value) : CIrValue;
@@ -19,3 +21,4 @@ record CIrNativeText(string Text) : CIrNativePart;
 record CIrNativeValue(CIrValue Value) : CIrNativePart;
 record CIrNative(List<CIrNativePart> Parts) : CIrValue;
 record CIrCast(TypeSymbol Type, CIrValue Value) : CIrValue;
+record CIrCall(CIrValue Target, List<CIrValue> Arguments) : CIrValue;
