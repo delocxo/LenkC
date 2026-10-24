@@ -1,4 +1,4 @@
-abstract record TypeSymbol(string Name, string CName, string? FormatSymbol)
+record TypeSymbol(string Name, string CName, string? FormatSymbol)
 {
     public static readonly StringSymbol String = new();
     public static readonly BoolSymbol Bool = new();

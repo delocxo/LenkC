@@ -1,11 +1,25 @@
-struct Box<T>
+native(void, """
+#include <stdio.h>
+""");
+
+native(void, """
+typedef struct
 {
-    T item;
+    char* first_name;
+    char* last_name;
+} Name;
+""");
+
+type Name = "Name" struct
+{
+    string first_name;
+    string last_name;
 }
+
 
 @int main()
 {
-    infer box = alloc Box::<int>(100);
-    free 
-    return 0 ;
+    let Name name = Name("John", "Doe");
+    native(void, #printf("Your name is %s %s.", ${name.first_name}, ${name.last_name});#);
+    return 0;
 }

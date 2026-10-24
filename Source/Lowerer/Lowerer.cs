@@ -103,8 +103,6 @@ class Lowerer
                     return;
                 }
         }
-
-        throw new UnreachableException();
     }
 
     CIrValue LowerExpr(Expr expr)

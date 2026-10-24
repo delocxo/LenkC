@@ -214,14 +214,43 @@ class ReturnStmt : Stmt
 
 class UnboundStructStmt : Stmt
 {
-    public UnboundStructStmt(string name, List<string> typeParameters, List<UnboundField> fields, Position position) : base(position)
+    public UnboundStructStmt(string name, List<string> typeParameters, List<UnboundField> fields, Position position, bool mangleName = true, string cName = "") : base(position)
     {
         Name = name;
         TypeParameters = typeParameters;
         Fields = fields;
+        MangleName = mangleName;
+        CName = cName;
     }
 
     public string Name { get; }
     public List<string> TypeParameters { get; }
     public List<UnboundField> Fields { get; }
+    public bool MangleName { get; }
+    public string CName { get; }
+}
+
+enum TypeofType
+{
+    Regular,
+    Numeric,
+    Struct
+}
+
+class TypeStmt : Stmt
+{
+    public TypeStmt(string name, string cName, Position position, TypeofType typeofType, NumericSymbol? numericSymbol = null, UnboundStructStmt? structStmt = null) : base(position)
+    {
+        Name = name;
+        CName = cName;
+        TypeofType = typeofType;
+        NumericSymbol = numericSymbol;
+        StructStmt = structStmt;
+    }
+
+    public string Name { get; }
+    public string CName { get; }
+    public TypeofType TypeofType { get; }
+    public NumericSymbol? NumericSymbol { get; }
+    public UnboundStructStmt? StructStmt { get; }
 }

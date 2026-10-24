@@ -26,7 +26,9 @@ class Lexer
             { "return", TokenType.Return },
             { "cname", TokenType.CName },
             { "fmt", TokenType.Fmt },
-            { "struct", TokenType.Struct }
+            { "struct", TokenType.Struct },
+            { "type", TokenType.Type },
+            { "numeric", TokenType.Numeric }
         };
 
     static Dictionary<string, TokenType> s_symbols = new Dictionary<string, TokenType>()

@@ -33,27 +33,42 @@ class Semantics
             }
             else if (stmt is UnboundStructStmt structStmt)
             {
-                if (!s_structs.TryAdd(structStmt.Name, structStmt))
-                    throw new Error($"'{structStmt.Name}' is an already existing struct", structStmt.Position);
-
-                if (TypeRegistery.Registery.ContainsKey(structStmt.Name))
-                    throw new Error($"'{structStmt.Name}' is an already existing type", structStmt.Position);
-
-                HashSet<string> typeParameters = [];
-                foreach (var parameter in structStmt.TypeParameters)
-                    if (!typeParameters.Add(parameter))
-                        throw new Error($"'{parameter}' is a duplicate struct type parameter", structStmt.Position);
-
-                HashSet<string> parameters = [];
-                foreach (var fields in structStmt.Fields)
-                    if (!parameters.Add(fields.Name))
-                        throw new Error($"'{fields.Name}' is a duplicate struct field", fields.Position);
+                VerfiyUnboundStruct(structStmt);
             }
+            else if (stmt is TypeStmt unboundTypeStmt)
+                if (unboundTypeStmt.TypeofType == TypeofType.Numeric)
+                    TypeRegistery.Register(unboundTypeStmt.NumericSymbol!);
+                else if (unboundTypeStmt.TypeofType == TypeofType.Struct)
+                {
+                    var structStmt2 = unboundTypeStmt.StructStmt!;
+                    VerfiyUnboundStruct(structStmt2);
+                }
+                else
+                    TypeRegistery.Register(new TypeSymbol(unboundTypeStmt.Name, unboundTypeStmt.CName, null));
 
         foreach (var stmt in stmts)
             newStmts.Add(CheckStmt(stmt));
 
         return newStmts;
+    }
+
+    void VerfiyUnboundStruct(UnboundStructStmt structStmt)
+    {
+        if (!s_structs.TryAdd(structStmt.Name, structStmt))
+            throw new Error($"'{structStmt.Name}' is an already existing struct", structStmt.Position);
+
+        if (TypeRegistery.Registery.ContainsKey(structStmt.Name))
+            throw new Error($"'{structStmt.Name}' is an already existing type", structStmt.Position);
+
+        HashSet<string> typeParameters = [];
+        foreach (var parameter in structStmt.TypeParameters)
+            if (!typeParameters.Add(parameter))
+                throw new Error($"'{parameter}' is a duplicate struct type parameter", structStmt.Position);
+
+        HashSet<string> parameters = [];
+        foreach (var fields in structStmt.Fields)
+            if (!parameters.Add(fields.Name))
+                throw new Error($"'{fields.Name}' is a duplicate struct field", fields.Position);
     }
 
     Stmt CheckStmt(Stmt stmt)
@@ -152,7 +167,7 @@ class Semantics
         else if (stmt is UnboundFunctionStmt unboundFunctionStmt)
         {
             if (!Scopes.AtGlobalLevel)
-                throw new Error($"Function '{unboundFunctionStmt.Name}' can only be declared at the top level", unboundFunctionStmt.Position);
+                throw new Error($"Function '{unboundFunctionStmt.Name}' can only be declared at the top-level", unboundFunctionStmt.Position);
             return unboundFunctionStmt;
         }
         else if (stmt is ReturnStmt returnStmt)
@@ -169,8 +184,14 @@ class Semantics
         else if (stmt is UnboundStructStmt structStmt)
         {
             if (!Scopes.AtGlobalLevel)
-                throw new Error($"Struct '{structStmt.Name}' can only be declared at the top level", structStmt.Position);
+                throw new Error($"Struct '{structStmt.Name}' can only be declared at the top-level", structStmt.Position);
             return structStmt;
+        }
+        else if (stmt is TypeStmt unboundTypeStmt)
+        {
+            if (!Scopes.AtGlobalLevel)
+                throw new Error($"Type '{unboundTypeStmt.Name}' can only be defined at the top-level", unboundTypeStmt.Position);
+            return unboundTypeStmt;
         }
 
         throw new UnreachableException($"Invalid statement: {stmt.GetType().Name}");
@@ -645,14 +666,15 @@ class Semantics
                             .ToList();
 
                         List<BoundField> fields = [];
-                        StructSymbol structSymbol = new(unboundStruct.Name, "", fields, typeArguments);
+                        StructSymbol structSymbol = new(unboundStruct.Name, unboundStruct.CName, fields, typeArguments);
 
                         string key = TypeKey(structSymbol);
 
                         if (BoundStructs.TryGetValue(key, out var bound))
                             return bound;
 
-                        structSymbol = structSymbol with { CName = key };
+                        if (unboundStruct.MangleName)
+                            structSymbol = structSymbol with { CName = key };
 
                         BoundStructs[key] = structSymbol;
 

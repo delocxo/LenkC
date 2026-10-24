@@ -44,6 +44,8 @@ class Parser
             return ParseReturn();
         if (Check(TokenType.Struct))
             return ParseStruct();
+        if (Check(TokenType.Type))
+            return ParseType();
         return ParseExprStmt();
     }
 
@@ -200,6 +202,92 @@ class Parser
         Expect(TokenType.RightBrace);
 
         return new(name, typeParameters, fields, position);
+    }
+
+    TypeStmt ParseType()
+    {
+        Position position = PosNext();
+
+        string name = ParseName("Expected type name");
+
+        Expect(TokenType.Equal);
+
+        string cname = Current().Lexeme;
+        Eat("Expected a string cname", TokenType.String);
+
+        // I COULD check this in semantics but honestly, why not here?
+        if (Match(TokenType.Numeric))
+        {
+            Expect(TokenType.LeftParen);
+
+            Expr bitsExpr = ParseExpr();
+
+            if (bitsExpr is not IntExpr intExpr)
+                throw new Error("Expected bits to be an int", bitsExpr.Position);
+
+            if (intExpr.Value < 1 || intExpr.Value > 128)
+                throw new Error("Bit count must be between 1 and 128", intExpr.Position);
+
+            Expect(TokenType.Comma);
+
+            Expr isFloatExpr = ParseExpr();
+
+            if (isFloatExpr is not BoolExpr boolExpr)
+                throw new Error("Expected isfloat to be a bool", isFloatExpr.Position);
+
+            Expect(TokenType.Comma);
+
+            Expr isSignedExpr = ParseExpr();
+
+            if (isSignedExpr is not BoolExpr sBoolExpr)
+                throw new Error("Expected issigned to be a bool", isSignedExpr.Position);
+
+            Expect(TokenType.Comma);
+
+            Expr formatExpr = ParseExpr();
+
+            if (formatExpr is not StringExpr stringExpr)
+                throw new Error("Expected format to be a string", isSignedExpr.Position);
+
+            Expect(TokenType.RightParen);
+
+            Expect(TokenType.Semicolon);
+
+            return new TypeStmt(
+                name,
+                cname,
+                position,
+                TypeofType.Numeric,
+                new(
+                    name,
+                    cname,
+                    (int)intExpr.Value,
+                    boolExpr.Value,
+                    sBoolExpr.Value,
+                    stringExpr.Value
+                )
+            );
+        }
+        else if (Match(TokenType.Struct))
+        {
+            Expect(TokenType.LeftBrace);
+
+            List<UnboundField> fields = [];
+
+            while (!Check(TokenType.RightBrace))
+            {
+                fields.Add(ParseField());
+                Expect(TokenType.Semicolon);
+            }
+
+            Expect(TokenType.RightBrace);
+
+            return new(name, cname, position, TypeofType.Struct, null, new(name, [], fields, position, false, cname));
+        }
+
+        Expect(TokenType.Semicolon);
+
+        return new(name, cname, position, TypeofType.Regular);
     }
 
 
