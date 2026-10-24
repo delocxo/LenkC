@@ -42,6 +42,24 @@ record TypeSymbol(string Name, string CName, string? FormatSymbol)
             throw new Error(message, position);
         return this;
     }
+
+    public bool TypeCheck(TypeSymbol other)
+    {
+        if (this is PointerSymbol pl && other is PointerSymbol pr)
+            return pl.Inner.TypeCheck(pr.Inner);
+
+        if (this is FunctionSymbol fl && other is FunctionSymbol fr)
+            return fl.ParameterTypes.Count == fr.ParameterTypes.Count &&
+                fl.ParameterTypes
+                    .Zip(fr.ParameterTypes)
+                    .All(pair => pair.First.TypeCheck(pair.Second))
+                && fl.ReturnType.TypeCheck(fr.ReturnType);
+
+        if (this is StructSymbol sl && other is StructSymbol sr)
+            return ReferenceEquals(sl, sr);
+
+        return this == other;
+    }
 }
 
 record NumericSymbol(string Name, string CName, int Bits, bool IsFloat, bool IsSigned, string FormatSymbol) : TypeSymbol(Name, CName, FormatSymbol)

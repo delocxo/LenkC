@@ -629,6 +629,20 @@ class Parser
 
             return new UnboundFmtExpr(symbol, token.Position);
         }
+        else if (Match(TokenType.TypeIs))
+        {
+            Expect(TokenType.LeftParen);
+
+            var left = ParseSymbol();
+
+            Expect(TokenType.Comma);
+
+            var right = ParseSymbol();
+
+            Expect(TokenType.RightParen);
+
+            return new TypeIsExpr(left, right, token.Position);
+        }
 
         throw ThrowUnexpected();
     }

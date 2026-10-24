@@ -639,6 +639,16 @@ class Semantics
 
                     throw new Error($"Member access requires a struct or pointer to a struct", memberAssignExpr.Position);
                 }
+
+            case TypeIsExpr typeIsExpr:
+                {
+                    var left = ResolveSymbol(typeIsExpr.Left);
+                    var right = ResolveSymbol(typeIsExpr.Right);
+                    return new(
+                        new BoolExpr(left.TypeCheck(right), typeIsExpr.Position),
+                        TypeSymbol.Bool
+                    );
+                }
         }
 
         throw new UnreachableException($"Invalid expression: {expr.GetType().Name}");

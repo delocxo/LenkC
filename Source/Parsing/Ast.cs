@@ -31,6 +31,7 @@ record IndexExpr(Expr Target, Expr Index, Position Position) : Expr(Position);
 record IndexAssignExpr(IndexExpr IndexExpr, Expr Value) : Expr(IndexExpr.Position);
 record MemberExpr(Expr Target, NameExpr Member, Position Position) : Expr(Position);
 record MemberAssignExpr(Expr Target, string Member, Expr Value, Position Position) : Expr(Position);
+record TypeIsExpr(PSymbol Left, PSymbol Right, Position Position) : Expr(Position);
 record ResolvedExpr(Expr Expr, TypeSymbol TypeSymbol) : Expr(Expr.Position);
 
 abstract class Stmt

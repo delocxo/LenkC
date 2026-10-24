@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Numerics;
 using System.Text;
 
 class Lexer
@@ -28,7 +29,8 @@ class Lexer
             { "fmt", TokenType.Fmt },
             { "struct", TokenType.Struct },
             { "type", TokenType.Type },
-            { "numeric", TokenType.Numeric }
+            { "numeric", TokenType.Numeric },
+            { "typeis", TokenType.TypeIs }
         };
 
     static Dictionary<string, TokenType> s_symbols = new Dictionary<string, TokenType>()
@@ -287,6 +289,51 @@ class Lexer
     Token LexNumber()
     {
         Position position = _currentPos;
+
+        if (Char() == '0' && NotAtEnd(1))
+        {
+            int numberBase = Char(1) switch
+            {
+                'b' or 'B' => 2,
+                'o' or 'O' => 8,
+                'x' or 'X' => 16,
+                _ => 0
+            };
+
+            if (numberBase != 0)
+            {
+                Next();
+                Next();
+
+                BigInteger value = 0;
+                bool hasDigits = false;
+
+                while (NotAtEnd() && char.IsLetterOrDigit(Char()))
+                {
+                    char c = Char();
+
+                    int digit = c switch
+                    {
+                        >= '0' and <= '9' => c - '0',
+                        >= 'a' and <= 'f' => c - 'a' + 10,
+                        >= 'A' and <= 'F' => c - 'A' + 10,
+                        _ => -1
+                    };
+
+                    if (digit < 0 || digit >= numberBase)
+                        throw new Error("Invalid digit in number", _currentPos);
+
+                    value = value * numberBase + digit;
+                    hasDigits = true;
+                    Next();
+                }
+
+                if (!hasDigits)
+                    throw new Error("Expected digits after number prefeix", position);
+
+                return new Token(TokenType.Number, value.ToString(), position);
+            }
+        }
 
         StringBuilder sb = new StringBuilder();
         bool hasDecimal = false;
