@@ -5,6 +5,7 @@ struct Box<T>
 
 @int main()
 {
-    let Box::<int> box = Box::<int>(100);
+    infer box = alloc Box::<int>(100);
+    free 
     return 0 ;
 }
