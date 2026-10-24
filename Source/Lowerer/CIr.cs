@@ -8,6 +8,7 @@ record CIrContinue : CIrInstruction;
 record CIrFunction(BoundFunctionStmt Function, string Name) : CIrInstruction;
 record CIrReturn(CIrValue? Value) : CIrInstruction;
 record CIrStruct(string Name) : CIrInstruction;
+record CIrFunctionEnd : CIrInstruction;
 
 abstract record CIrValue;
 record CIrLiteral(object Value) : CIrValue;

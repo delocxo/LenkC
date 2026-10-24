@@ -81,7 +81,7 @@ class Lowerer
                         {
                             Instructions.Add(new CIrFunction(x.Value.Function, x.Key));
                             LowererStmts(x.Value.Function.Body);
-                            Instructions.Add(new CIrEnd());
+                            Instructions.Add(new CIrFunctionEnd());
                         });
                     return;
                 }

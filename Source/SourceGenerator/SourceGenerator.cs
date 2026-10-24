@@ -19,6 +19,8 @@ class SourceGenerator
 
         Result.AppendLine(_emitter.Ouput.ToString());
 
+        Result.AppendLine(_emitter.Functions.ToString());
+
         Result.AppendLine($$"""
         int main(int argc, char** argv) {
             return {{mainName}}({{(argumentCount == 0 ? "" : "argc, argv")}});

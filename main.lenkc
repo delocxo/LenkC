@@ -2,24 +2,13 @@ native(void, """
 #include <stdio.h>
 """);
 
-native(void, """
-typedef struct
+struct Box<T>
 {
-    char* first_name;
-    char* last_name;
-} Name;
-""");
-
-type Name = "Name" struct
-{
-    string first_name;
-    string last_name;
+    T value;
 }
-
 
 @int main()
 {
-    let Name name = Name("John", "Doe");
-    native(void, #printf("Your name is %s %s.", ${name.first_name}, ${name.last_name});#);
+    let Box::<int> name = Box::<int>(100);
     return 0;
 }

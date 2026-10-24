@@ -6,9 +6,10 @@ using System.Text;
 class Emitter
 {
     public StringBuilder Ouput { get; } = new();
+    public StringBuilder Functions { get; } = new();
+    public int IndentLevel { get; set; } = 0;
     Lowerer _lowerer;
 
-    int _indentLevel = 0;
     int _indentSize = 4;
     int _ip = 0;
 
@@ -32,6 +33,19 @@ class Emitter
                 break;
             EmitInstruction(instruction);
         }
+    }
+
+    List<CIrInstruction> GetInstructionsUntil<T>() where T : CIrInstruction
+    {
+        List<CIrInstruction> instructions = [];
+        while (_ip < _lowerer.Instructions.Count)
+        {
+            var instruction = _lowerer.Instructions[_ip++];
+            if (instruction is T)
+                break;
+            instructions.Add(instruction);
+        }
+        return instructions;
     }
 
     void EmitInstruction(CIrInstruction cIrInstruction)
@@ -63,11 +77,11 @@ class Emitter
 
                     Emit($"{controlFlowStart.Name}{(hasCondition ? $" ({condition})" : "")} {{");
 
-                    _indentLevel++;
+                    IndentLevel++;
 
                     EmitInstructionsUntil<CIrEnd>();
 
-                    _indentLevel--;
+                    IndentLevel--;
 
                     Emit("}");
                     break;
@@ -90,15 +104,26 @@ class Emitter
 
                     var stringParameters = string.Join(", ", parameters);
 
-                    Emit($"{name}({stringParameters}) {{");
+                    Emit($"{name}({stringParameters});");
 
-                    _indentLevel++;
+                    var instructions = GetInstructionsUntil<CIrFunctionEnd>();
 
-                    EmitInstructionsUntil<CIrEnd>();
+                    Lowerer lowerer = new();
+                    lowerer.Instructions.AddRange(instructions);
 
-                    _indentLevel--;
+                    Emitter emitter = new(lowerer);
 
-                    Emit("}");
+                    emitter.Emit($"{name}({stringParameters}) {{");
+
+                    emitter.IndentLevel++;
+
+                    emitter.EmitInstructions();
+
+                    emitter.IndentLevel--;
+
+                    emitter.Emit("}");
+
+                    Functions.AppendLine(emitter.Ouput.ToString());
 
                     break;
                 }
@@ -125,7 +150,7 @@ class Emitter
                         {
                             Emit("typedef struct {");
 
-                            _indentLevel++;
+                            IndentLevel++;
 
                             foreach (var field in x.Fields)
                             {
@@ -133,7 +158,7 @@ class Emitter
                                 Emit($"{fieldString};");
                             }
 
-                            _indentLevel--;
+                            IndentLevel--;
 
                             Emit($"}} {x.CName};");
                         });
@@ -296,10 +321,10 @@ class Emitter
         throw new UnreachableException();
     }
 
-    void Emit(string line)
+    public void Emit(string line)
     {
         Ouput
-        .Append(' ', _indentSize * _indentLevel)
+        .Append(' ', _indentSize * IndentLevel)
         .AppendLine(line);
     }
 

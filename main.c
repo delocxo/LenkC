@@ -3,18 +3,10 @@
 
 #include <stdio.h>
 
-
-typedef struct
-{
-    char* first_name;
-    char* last_name;
-} Name;
-
-int32_t _lenkc_function_main__() {
-    Name _lenkc_name_ = (Name){"John", "Doe"};
-    printf("Your name is %s %s.", (_lenkc_name_).first_name, (_lenkc_name_).last_name);
-    return 0;
-}
+typedef struct {
+    int32_t value;
+} struct_Box_1_int_end;
+int32_t _lenkc_function_main__();
 
 int main(int argc, char** argv) {
     return _lenkc_function_main__();
