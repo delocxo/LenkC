@@ -7,6 +7,7 @@
     Return, Use, Record, Enum, Import,
     For, In, Elif, Let, Infer, Native,
     GlobalNative, Cast, CName, Fmt,
+    Struct,
 
     Add, Sub, Mul, Div, Mod,
     IsEqual, NotEqual, Less, Greater,

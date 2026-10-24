@@ -7,6 +7,7 @@ record CIrBreak : CIrInstruction;
 record CIrContinue : CIrInstruction;
 record CIrFunction(BoundFunctionStmt Function, string Name) : CIrInstruction;
 record CIrReturn(CIrValue? Value) : CIrInstruction;
+record CIrStruct(string Name) : CIrInstruction;
 
 abstract record CIrValue;
 record CIrLiteral(object Value) : CIrValue;
@@ -22,7 +23,10 @@ record CIrNativeValue(CIrValue Value) : CIrNativePart;
 record CIrNative(List<CIrNativePart> Parts) : CIrValue;
 record CIrCast(TypeSymbol Type, CIrValue Value) : CIrValue;
 record CIrCall(CIrValue Target, List<CIrValue> Arguments) : CIrValue;
+record CIrConstructer(StructSymbol StructSymbol, List<CIrValue> Arguments) : CIrValue;
 record CIrCName(TypeSymbol Type) : CIrValue;
 record CIrFmt(TypeSymbol Type) : CIrValue;
 record CIrIndex(CIrValue Target, CIrValue Index) : CIrValue;
 record CIrIndexSet(CIrValue Target, CIrValue Index, CIrValue Value) : CIrValue;
+record CIrMember(CIrValue Target, string Member) : CIrValue;
+record CIrMemberSet(CIrValue Target, string Member, CIrValue Value) : CIrValue;

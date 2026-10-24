@@ -4,7 +4,9 @@ using System.Numerics;
 class Semantics
 {
     public static Dictionary<string, (BoundFunctionStmt Function, FunctionSymbol Type)> BoundFunctions { get; } = [];
+    public static Dictionary<string, StructSymbol> BoundStructs { get; } = [];
     static Dictionary<string, UnboundFunctionStmt> s_functions = [];
+    static Dictionary<string, UnboundStructStmt> s_structs = [];
 
     int _loopDepth = 0;
 
@@ -28,6 +30,24 @@ class Semantics
                     if (!parameters.Add(parameter.Name))
                         throw new Error($"'{parameter.Name}' is a duplicate function parameter", parameter.Position);
 
+            }
+            else if (stmt is UnboundStructStmt structStmt)
+            {
+                if (!s_structs.TryAdd(structStmt.Name, structStmt))
+                    throw new Error($"'{structStmt.Name}' is an already existing struct", structStmt.Position);
+
+                if (TypeRegistery.Registery.ContainsKey(structStmt.Name))
+                    throw new Error($"'{structStmt.Name}' is an already existing type", structStmt.Position);
+
+                HashSet<string> typeParameters = [];
+                foreach (var parameter in structStmt.TypeParameters)
+                    if (!typeParameters.Add(parameter))
+                        throw new Error($"'{parameter}' is a duplicate struct type parameter", structStmt.Position);
+
+                HashSet<string> parameters = [];
+                foreach (var fields in structStmt.Fields)
+                    if (!parameters.Add(fields.Name))
+                        throw new Error($"'{fields.Name}' is a duplicate struct field", fields.Position);
             }
 
         foreach (var stmt in stmts)
@@ -75,7 +95,8 @@ class Semantics
                 PointerAssignExpr or
                 UnboundNativeExpr or
                 CallExpr or
-                IndexAssignExpr
+                IndexAssignExpr or
+                MemberAssignExpr
             ))
                 throw new Error($"Expression statement can only be an assignment or call: {exprStmt.Expr.GetType().Name}", exprStmt.Position);
             return new ExprStmt(
@@ -145,6 +166,12 @@ class Semantics
                 returnStmt.Position
             );
         }
+        else if (stmt is UnboundStructStmt structStmt)
+        {
+            if (!Scopes.AtGlobalLevel)
+                throw new Error($"Struct '{structStmt.Name}' can only be declared at the top level", structStmt.Position);
+            return structStmt;
+        }
 
         throw new UnreachableException($"Invalid statement: {stmt.GetType().Name}");
     }
@@ -193,6 +220,7 @@ class Semantics
             .Select(x =>
             {
                 var type = semantics.ResolveSymbol(x.Symbol);
+                type.RejectVoid("Cannont set a function parameter to null", x.Position);
                 return new BoundField(type, x.Name);
             }).ToList();
 
@@ -253,7 +281,7 @@ class Semantics
             case NameExpr nameExpr:
                 {
                     var typeArguments = nameExpr.TypeArguments
-                            .Select(ResolveSymbol)
+                            .Select(x => ResolveSymbol(x).RejectVoid("Type argument cannot be void", x.Position))
                             .ToList();
 
                     if (s_functions.TryGetValue(nameExpr.Name, out var function))
@@ -442,6 +470,29 @@ class Semantics
 
             case CallExpr callExpr:
                 {
+                    if (callExpr.Target is NameExpr nameExpr)
+                    {
+                        if (s_structs.ContainsKey(nameExpr.Name))
+                        {
+                            var symbol = new NamePSymbol(nameExpr.Name, nameExpr.TypeArguments, nameExpr.Position);
+
+                            var structSymbol = (StructSymbol)ResolveSymbol(symbol);
+
+                            if (callExpr.Arguments.Count != structSymbol.Fields.Count)
+                                throw new Error($"Struct '{structSymbol.Name}' requires {structSymbol.Fields.Count} arguments, got {callExpr.Arguments.Count}", callExpr.Position);
+
+                            return new(new CallExpr(
+                                nameExpr,
+                                callExpr.Arguments
+                                    .Select(x => CheckExpr(x).Expr)
+                                    .ToList(),
+                                    callExpr.Position,
+                                    structSymbol
+                                ), structSymbol
+                            );
+                        }
+                    }
+
                     var target = CheckExpr(callExpr.Target);
                     var arguments = callExpr.Arguments
                         .Select(x => CheckExpr(x).Expr)
@@ -512,6 +563,61 @@ class Semantics
                         value.Expr
                     ), value.TypeSymbol);
                 }
+
+            case MemberExpr memberExpr:
+                {
+                    var target = CheckExpr(memberExpr.Target);
+                    var member = memberExpr.Member;
+
+                    var targetType = target.TypeSymbol;
+                    var targetExpr = target.Expr;
+
+                    if (targetType is PointerSymbol pointer)
+                    {
+                        targetType = pointer.Inner;
+                        targetExpr = new UnaryExpr(targetExpr, TokenType.BackTick, memberExpr.Position);
+                    }
+
+                    if (targetType is StructSymbol structSymbol)
+                    {
+                        var field = structSymbol.Fields.Find(x => x.Name == member.Name);
+                        if (field != null)
+                        {
+                            if (member.TypeArguments.Count > 0)
+                                throw new Error($"Field '{field.Name}' does not take any type arguments", member.Position);
+                            return new(memberExpr with { Target = targetExpr }, field.Type);
+                        }
+                        throw new Error($"Struct '{structSymbol.Name}' has no field '{member.Name}'", memberExpr.Position);
+                    }
+
+                    throw new Error($"Member access requires a struct or pointer to a struct", memberExpr.Position);
+                }
+
+            case MemberAssignExpr memberAssignExpr:
+                {
+                    var target = CheckExpr(memberAssignExpr.Target);
+                    var member = memberAssignExpr.Member;
+                    var value = CheckExpr(memberAssignExpr.Value);
+
+                    var targetType = target.TypeSymbol;
+                    var targetExpr = target.Expr;
+
+                    if (targetType is PointerSymbol pointer)
+                    {
+                        targetType = pointer.Inner;
+                        targetExpr = new UnaryExpr(targetExpr, TokenType.BackTick, memberAssignExpr.Position);
+                    }
+
+                    if (targetType is StructSymbol structSymbol)
+                    {
+                        var field = structSymbol.Fields.Find(x => x.Name == member);
+                        if (field != null)
+                            return new(memberAssignExpr with { Target = targetExpr, Value = value.Expr }, value.TypeSymbol);
+                        throw new Error($"Struct '{structSymbol.Name}' has no field '{member}'", memberAssignExpr.Position);
+                    }
+
+                    throw new Error($"Member access requires a struct or pointer to a struct", memberAssignExpr.Position);
+                }
         }
 
         throw new UnreachableException($"Invalid expression: {expr.GetType().Name}");
@@ -523,9 +629,60 @@ class Semantics
         {
             case NamePSymbol namePSymbol:
                 {
-                    if (!TypeRegistery.Registery.TryGetValue(namePSymbol.Name, out var value))
-                        throw new Error($"Type '{namePSymbol.Name}' does not exist", pSymbol.Position);
-                    return value;
+                    if (TypeRegistery.Registery.TryGetValue(namePSymbol.Name, out var value))
+                    {
+                        if (namePSymbol.TypeArguments.Count > 0)
+                            throw new Error($"Type '{namePSymbol.Name}' does not take any generic arguments", namePSymbol.Position);
+                        return value;
+                    }
+                    else if (s_structs.TryGetValue(namePSymbol.Name, out var unboundStruct))
+                    {
+                        if (namePSymbol.TypeArguments.Count != unboundStruct.TypeParameters.Count)
+                            throw new Error($"Struct '{namePSymbol.Name}' expects {unboundStruct.TypeParameters.Count} type argument(s), got {namePSymbol.TypeArguments.Count}", unboundStruct.Position);
+
+                        var typeArguments = namePSymbol.TypeArguments
+                            .Select(x => ResolveSymbol(x).RejectVoid("Type argument cannot be void", x.Position))
+                            .ToList();
+
+                        List<BoundField> fields = [];
+                        StructSymbol structSymbol = new(unboundStruct.Name, "", fields, typeArguments);
+
+                        string key = TypeKey(structSymbol);
+
+                        if (BoundStructs.TryGetValue(key, out var bound))
+                            return bound;
+
+                        structSymbol = structSymbol with { CName = key };
+
+                        BoundStructs[key] = structSymbol;
+
+                        var mapping = unboundStruct.TypeParameters
+                            .Zip(typeArguments)
+                            .ToDictionary(x => x.First, x => x.Second);
+
+                        Dictionary<string, TypeSymbol?> previousTypes = [];
+                        foreach (var pair in mapping)
+                        {
+                            TypeRegistery.Registery.TryGetValue(pair.Key, out var previous);
+                            previousTypes.Add(pair.Key, previous);
+                            TypeRegistery.Registery[pair.Key] = pair.Value;
+                        }
+
+                        foreach (var field in unboundStruct.Fields)
+                        {
+                            var symbol = ResolveSymbol(field.Symbol).RejectVoid($"'{field.Name}' cannont be void", field.Position);
+                            fields.Add(new(symbol, field.Name));
+                        }
+
+                        foreach (var pair in previousTypes)
+                            if (pair.Value == null)
+                                TypeRegistery.Registery.Remove(pair.Key);
+                            else
+                                TypeRegistery.Registery[pair.Key] = pair.Value;
+
+                        return structSymbol;
+                    }
+                    throw new Error($"Type '{namePSymbol.Name}' does not exist", pSymbol.Position);
                 }
 
             case PointerPSymbol pointerPSymbol:
@@ -581,6 +738,10 @@ class Semantics
             $"fn_{function.ParameterTypes.Count}_" +
             string.Join("_", function.ParameterTypes.Select(TypeKey)) +
             $"_ret_{TypeKey(function.ReturnType)}_end",
+        StructSymbol structSymbol =>
+            $"struct_" + structSymbol.Name + "_" + $"{structSymbol.TypeArguments.Count}_" +
+            string.Join("_", structSymbol.TypeArguments.Select(TypeKey)) +
+            "_end",
         _ => type.Name
     };
 

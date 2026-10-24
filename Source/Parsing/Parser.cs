@@ -42,6 +42,8 @@ class Parser
             return ParseFunction();
         if (Check(TokenType.Return))
             return ParseReturn();
+        if (Check(TokenType.Struct))
+            return ParseStruct();
         return ParseExprStmt();
     }
 
@@ -130,14 +132,6 @@ class Parser
 
     UnboundFunctionStmt ParseFunction()
     {
-        UnboundField ParseParameter()
-        {
-            Position pos = Current().Position;
-            var symbol = ParseSymbol();
-            string name = ParseName("Expected parameter name");
-            return new(symbol, name, pos);
-        }
-
         Position position = PosNext();
 
         var returnSymbol = ParseSymbol();
@@ -155,10 +149,10 @@ class Parser
 
         if (!Check(TokenType.RightParen))
         {
-            parameters.Add(ParseParameter());
+            parameters.Add(ParseField());
 
             while (Match(TokenType.Comma))
-                parameters.Add(ParseParameter());
+                parameters.Add(ParseField());
         }
 
         Expect(TokenType.RightParen);
@@ -182,6 +176,32 @@ class Parser
         return new(expr, position);
     }
 
+    UnboundStructStmt ParseStruct()
+    {
+        Position position = PosNext();
+
+        string name = ParseName("Expected struct name");
+
+        List<string> typeParameters = [];
+
+        if (Check(TokenType.Less))
+            typeParameters = ParseNames(TokenType.Less, TokenType.Greater);
+
+        Expect(TokenType.LeftBrace);
+
+        List<UnboundField> fields = [];
+
+        while (!Check(TokenType.RightBrace))
+        {
+            fields.Add(ParseField());
+            Expect(TokenType.Semicolon);
+        }
+
+        Expect(TokenType.RightBrace);
+
+        return new(name, typeParameters, fields, position);
+    }
+
 
     IfBranch ParseBranch()
     {
@@ -194,6 +214,15 @@ class Parser
         var body = ParseBody();
 
         return new(condition, body);
+    }
+
+
+    UnboundField ParseField()
+    {
+        Position pos = Current().Position;
+        var symbol = ParseSymbol();
+        string name = ParseName("Expected parameter name");
+        return new(symbol, name, pos);
     }
 
     Error ThrowUnexpected()
@@ -261,7 +290,7 @@ class Parser
         return names;
     }
 
-    List<PSymbol> ParseTypeParameters()
+    List<PSymbol> ParseTypeArguments()
     {
         if (!Match(TokenType.DoubleColon))
             return [];
@@ -346,7 +375,8 @@ class Parser
         else
         {
             string name = ParseName("Expected type name");
-            symbol = new NamePSymbol(name, position);
+            List<PSymbol> typeArguments = ParseTypeArguments();
+            symbol = new NamePSymbol(name, typeArguments, position);
         }
 
         while (Match(TokenType.BackTick))
@@ -451,7 +481,7 @@ class Parser
             return new BoolExpr(false, token.Position);
         else if (Match(TokenType.Identifier))
         {
-            List<PSymbol> typeParameters = ParseTypeParameters();
+            List<PSymbol> typeParameters = ParseTypeArguments();
             return new NameExpr(token.Lexeme, typeParameters, token.Position);
         }
         else if (Match(TokenType.Null))
@@ -546,18 +576,19 @@ class Parser
                 continue;
             }
 
-            //     if (Check(TokenType.Period))
-            //     {
-            //         Position position = Current().Position;
+            if (Check(TokenType.Period))
+            {
+                Position position = PosNext();
 
-            //         Next();
+                Position nameExprPosition = Current().Position;
 
-            //         string name = ParseName();
+                string name = ParseName();
+                var typeArguments = ParseTypeArguments();
 
-            //         left = new MemberExpr(left, name, position);
+                left = new MemberExpr(left, new NameExpr(name, typeArguments, nameExprPosition), position);
 
-            //         continue;
-            //     }
+                continue;
+            }
 
             break;
         }
@@ -775,6 +806,13 @@ class Parser
 
             if (left is IndexExpr indexExpr)
                 return new IndexAssignExpr(indexExpr, expr);
+
+            if (left is MemberExpr memberExpr)
+            {
+                if (memberExpr.Member.TypeArguments.Count > 0)
+                    throw new Error($"Member assignment takes 0 type arguments", memberExpr.Position);
+                return new MemberAssignExpr(memberExpr.Target, memberExpr.Member.Name, expr, memberExpr.Position);
+            }
 
             throw new Error("Invalid assign target", left.Position);
         }

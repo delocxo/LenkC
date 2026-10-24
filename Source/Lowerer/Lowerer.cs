@@ -96,6 +96,12 @@ class Lowerer
                     Instructions.Add(new CIrReturn(LowerExpr(returnStmt.Expr)));
                     return;
                 }
+
+            case UnboundStructStmt unboundStructStmt:
+                {
+                    Instructions.Add(new CIrStruct(unboundStructStmt.Name));
+                    return;
+                }
         }
 
         throw new UnreachableException();
@@ -174,10 +180,12 @@ class Lowerer
 
             case CallExpr callExpr:
                 {
-                    var target = LowerExpr(callExpr.Target);
                     var arguments = callExpr.Arguments
                         .Select(LowerExpr)
                         .ToList();
+                    if (callExpr.Struct != null)
+                        return new CIrConstructer(callExpr.Struct, arguments);
+                    var target = LowerExpr(callExpr.Target);
                     return new CIrCall(target, arguments);
                 }
 
@@ -205,6 +213,20 @@ class Lowerer
                         LowerExpr(indexAssignExpr.IndexExpr.Target),
                         LowerExpr(indexAssignExpr.IndexExpr.Index),
                         LowerExpr(indexAssignExpr.Value)
+                    );
+                }
+
+            case MemberExpr memberExpr:
+                {
+                    return new CIrMember(LowerExpr(memberExpr.Target), memberExpr.Member.Name);
+                }
+
+            case MemberAssignExpr memberAssignExpr:
+                {
+                    return new CIrMemberSet(
+                        LowerExpr(memberAssignExpr.Target),
+                        memberAssignExpr.Member,
+                        LowerExpr(memberAssignExpr.Value)
                     );
                 }
 

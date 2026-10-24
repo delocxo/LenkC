@@ -114,6 +114,31 @@ class Emitter
                     Emit($"return {value};");
                     break;
                 }
+
+            case CIrStruct cIrStruct:
+                {
+                    Semantics.BoundStructs
+                        .Where(x => x.Value.Name == cIrStruct.Name)
+                        .Select(x => x.Value)
+                        .ToList()
+                        .ForEach(x =>
+                        {
+                            Emit("typedef struct {");
+
+                            _indentLevel++;
+
+                            foreach (var field in x.Fields)
+                            {
+                                string fieldString = TypeToCType(field.Type, field.Name);
+                                Emit($"{fieldString};");
+                            }
+
+                            _indentLevel--;
+
+                            Emit($"}} {x.CName};");
+                        });
+                    break;
+                }
         }
     }
 
@@ -223,6 +248,12 @@ class Emitter
                     return $"({target})({arguments})";
                 }
 
+            case CIrConstructer cIrConstructer:
+                {
+                    string arguments = string.Join(", ", cIrConstructer.Arguments.Select(EmitValue));
+                    return $"({cIrConstructer.StructSymbol.CName}){{{arguments}}}";
+                }
+
             case CIrCName cIrCName:
                 {
                     return TypeToCType(cIrCName.Type);
@@ -246,6 +277,19 @@ class Emitter
                     string index = EmitValue(cIrIndexSet.Index);
                     string value = EmitValue(cIrIndexSet.Value);
                     return $"{target}[{index}] = {value}";
+                }
+
+            case CIrMember cIrMember:
+                {
+                    string target = EmitValue(cIrMember.Target);
+                    return $"({target}).{cIrMember.Member}";
+                }
+
+            case CIrMemberSet cIrMemberSet:
+                {
+                    string target = EmitValue(cIrMemberSet.Target);
+                    string value = EmitValue(cIrMemberSet.Value);
+                    return $"({target}).{cIrMemberSet.Member} = {value}";
                 }
         }
 

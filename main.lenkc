@@ -1,0 +1,10 @@
+struct Box<T>
+{
+    T item;
+}
+
+@int main()
+{
+    let Box::<int> box = Box::<int>(100);
+    return 0 ;
+}

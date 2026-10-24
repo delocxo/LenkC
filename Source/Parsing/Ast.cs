@@ -22,13 +22,15 @@ record NativeExpr(Expr Expr) : NativePart;
 record BoundNativeExpr(TypeSymbol Symbol, List<NativePart> Parts, Position Position) : Expr(Position);
 record UnboundCastExpr(PSymbol Symbol, Expr Value, Position Position) : Expr(Position);
 record BoundCastExpr(TypeSymbol Symbol, Expr Value, Position Position) : Expr(Position);
-record CallExpr(Expr Target, List<Expr> Arguments, Position Position) : Expr(Position);
+record CallExpr(Expr Target, List<Expr> Arguments, Position Position, StructSymbol? Struct = null) : Expr(Position);
 record UnboundCNameExpr(PSymbol Symbol, Position Position) : Expr(Position);
 record BoundCNameExpr(TypeSymbol TypeSymbol, Position Position) : Expr(Position);
 record UnboundFmtExpr(PSymbol Symbol, Position Position) : Expr(Position);
 record BoundFmtExpr(TypeSymbol TypeSymbol, Position Position) : Expr(Position);
 record IndexExpr(Expr Target, Expr Index, Position Position) : Expr(Position);
 record IndexAssignExpr(IndexExpr IndexExpr, Expr Value) : Expr(IndexExpr.Position);
+record MemberExpr(Expr Target, NameExpr Member, Position Position) : Expr(Position);
+record MemberAssignExpr(Expr Target, string Member, Expr Value, Position Position) : Expr(Position);
 record ResolvedExpr(Expr Expr, TypeSymbol TypeSymbol) : Expr(Expr.Position);
 
 abstract class Stmt
@@ -208,4 +210,18 @@ class ReturnStmt : Stmt
     }
 
     public Expr? Expr { get; }
+}
+
+class UnboundStructStmt : Stmt
+{
+    public UnboundStructStmt(string name, List<string> typeParameters, List<UnboundField> fields, Position position) : base(position)
+    {
+        Name = name;
+        TypeParameters = typeParameters;
+        Fields = fields;
+    }
+
+    public string Name { get; }
+    public List<string> TypeParameters { get; }
+    public List<UnboundField> Fields { get; }
 }

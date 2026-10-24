@@ -68,3 +68,4 @@ record CharSymbol() : TypeSymbol("char", "char", "%c");
 record VoidSymbol() : TypeSymbol("void", "void", null);
 record PointerSymbol(TypeSymbol Inner) : TypeSymbol("", "", "%p");
 record FunctionSymbol(TypeSymbol ReturnType, List<TypeSymbol> ParameterTypes) : TypeSymbol("", "", null);
+record StructSymbol(string Name, string CName, List<BoundField> Fields, List<TypeSymbol> TypeArguments) : TypeSymbol(Name, CName, null);
