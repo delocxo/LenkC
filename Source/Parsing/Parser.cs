@@ -738,15 +738,25 @@ class Parser
     {
         Expr left = ParseFactor();
 
-        while (Check(TokenType.BitwiseLeftShift, TokenType.BitwiseRightShift))
+        while (true)
         {
+            TokenType targetType = TokenType.Eof;
+
+            if (Check(TokenType.Less) && PeekNotAtEnd() && Peek().TokenType == TokenType.Less)
+                targetType = TokenType.BitwiseLeftShift;
+            else if (Check(TokenType.Greater) && PeekNotAtEnd() && Peek().TokenType == TokenType.Greater)
+                targetType = TokenType.BitwiseRightShift;
+            else
+                break;
+
             Token op = Current();
 
+            Next();
             Next();
 
             Expr right = ParseFactor();
 
-            left = new BinaryExpr(left, right, op.TokenType, op.Position);
+            left = new BinaryExpr(left, right, targetType, op.Position);
         }
 
         return left;
