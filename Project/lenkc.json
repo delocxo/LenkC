@@ -1,10 +1,10 @@
 {
     "sources": [],
     "buildOptions": {
-        "compiler": "gcc",
+        "compiler": "your-compiler",
         "compilerArgs": [],
         "outputPath": "dist",
-        "outputExe": "main.exe",
+        "outputExe": "lenkc.json.exe",
         "keepGeneratedC": true
     }
 }

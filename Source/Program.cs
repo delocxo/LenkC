@@ -10,6 +10,42 @@ if (args.Length == 0)
 }
 
 string projectPath = args[0];
+
+if (args.Length > 1)
+{
+    if (args[1] == "new")
+    {
+        string lenkcPath = Path.Join(projectPath, "lenkc.json");
+
+        string projectName = Path.GetFileName(Path.TrimEndingDirectorySeparator(lenkcPath));
+
+        if (File.Exists(lenkcPath))
+        {
+            Console.Error.WriteLine($"Project '{projectName}' already exist");
+            return 1;
+        }
+
+        Directory.CreateDirectory(projectPath);
+        Directory.CreateDirectory(Path.Join(projectPath, "dist"));
+
+        string jsonTemplate = $$"""
+        {
+            "sources": [],
+            "buildOptions": {
+                "compiler": "your-compiler",
+                "compilerArgs": [],
+                "outputPath": "dist",
+                "outputExe": "{{projectName}}.exe",
+                "keepGeneratedC": true
+            }
+        }
+        """;
+
+        File.WriteAllText(Path.Join(projectPath, "lenkc.json"), jsonTemplate);
+        return 0;
+    }
+}
+
 if (!Directory.Exists(projectPath))
 {
     Console.Error.WriteLine($"'{projectPath}' does not exist");
