@@ -17,7 +17,7 @@ if (args.Length > 1)
     {
         string lenkcPath = Path.Join(projectPath, "lenkc.json");
 
-        string projectName = Path.GetFileName(Path.TrimEndingDirectorySeparator(lenkcPath));
+        string projectName = Path.GetFileName(Path.TrimEndingDirectorySeparator(projectPath));
 
         if (File.Exists(lenkcPath))
         {
@@ -83,7 +83,7 @@ try
     var sourceFiles = Directory
         .GetFiles(projectPath, "*.lenkc", SearchOption.AllDirectories)
         .Where(path => !Path.GetFullPath(path).StartsWith(
-            Path.TrimEndingDirectorySeparator(outputPath) + Path.DirectorySeparatorChar,
+            Path.TrimEndingDirectorySeparator(Path.GetFullPath(outputPath)) + Path.DirectorySeparatorChar,
             StringComparison.OrdinalIgnoreCase
         ))
         .Select(Path.GetFullPath)

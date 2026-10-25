@@ -4,7 +4,7 @@
         "compiler": "your-compiler",
         "compilerArgs": [],
         "outputPath": "dist",
-        "outputExe": "lenkc.json.exe",
+        "outputExe": "Project.exe",
         "keepGeneratedC": true
     }
 }
