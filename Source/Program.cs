@@ -41,15 +41,28 @@ try
     List<Token> combinedTokens = [];
     Position lastPosition = new();
 
-    foreach (string path in lenkCProject.Sources)
+    var combinedPaths = lenkCProject.Sources
+        .Select(path => Path.GetFullPath(Path.Join(projectPath, path)))
+        .ToList();
+    var sourceFiles = Directory
+        .GetFiles(projectPath, "*.lenkc", SearchOption.AllDirectories)
+        .Where(path => !Path.GetFullPath(path).StartsWith(
+            Path.TrimEndingDirectorySeparator(outputPath) + Path.DirectorySeparatorChar,
+            StringComparison.OrdinalIgnoreCase
+        ))
+        .Select(Path.GetFullPath)
+        .ToList();
+
+    combinedPaths.AddRange(sourceFiles);
+
+    foreach (string path in combinedPaths.Distinct(StringComparer.OrdinalIgnoreCase))
     {
-        string combinedPath = Path.Join(projectPath, path);
-        if (!File.Exists(combinedPath))
+        if (!File.Exists(path))
         {
             Console.Error.WriteLine($"'{path}' does not exist");
             return 1;
         }
-        var lexer = new Lexer(File.ReadAllText(combinedPath), combinedPath);
+        var lexer = new Lexer(File.ReadAllText(path), path);
         combinedTokens.AddRange(lexer.Lex());
         lastPosition = lexer.CurrentPos;
     }

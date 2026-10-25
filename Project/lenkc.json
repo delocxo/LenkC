@@ -1,14 +1,10 @@
 {
-    "sources": [
-        "main.lenkc",
-        "list.lenkc",
-        "memory.lenkc"
-    ],
+    "sources": [],
     "buildOptions": {
         "compiler": "gcc",
         "compilerArgs": [],
         "outputPath": "dist",
         "outputExe": "main.exe",
-        "keepGeneratedC": false
+        "keepGeneratedC": true
     }
 }
