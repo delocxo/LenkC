@@ -1,22 +1,58 @@
-﻿TypeRegistery.RegisterPrimitives();
+﻿using System.Diagnostics;
+using System.Text.Json;
+
+TypeRegistery.RegisterPrimitives();
 
 if (args.Length == 0)
 {
-    Console.Error.WriteLine("Usage: LenkC <source-file> [output-file]");
-    return;
+    Console.Error.WriteLine("Usage: LenkC <project-path> ");
+    return 1;
 }
 
-string sourcePath = args[0];
-string outputPath = args.Length > 1 ? args[1] : Path.ChangeExtension(sourcePath, ".c");
+string projectPath = args[0];
+if (!Directory.Exists(projectPath))
+{
+    Console.Error.WriteLine($"'{projectPath}' does not exist");
+    return 1;
+}
+
+string jsonPath = Path.Join(projectPath, "lenkc.json");
+
+if (!File.Exists(jsonPath))
+{
+    Console.Error.WriteLine("Could not find lenkc.json");
+    return 1;
+}
+
+using var stream = File.OpenRead(jsonPath);
+
+LenkCProject? lenkCProject = JsonSerializer.Deserialize<LenkCProject>(stream);
+if (lenkCProject == null)
+{
+    Console.Error.WriteLine("Failed to load lenkc.json");
+    return 1;
+}
+
+string outputPath = Path.Join(projectPath, lenkCProject.BuildOptions.OutputPath);
+Directory.CreateDirectory(outputPath);
 
 try
 {
-    string source = File.ReadAllText(sourcePath);
+    List<Token> combinedTokens = [];
 
-    var lexer = new Lexer(source, sourcePath);
-    var tokens = lexer.Lex();
+    foreach (string path in lenkCProject.Sources)
+    {
+        string combinedPath = Path.Join(projectPath, path);
+        if (!File.Exists(combinedPath))
+        {
+            Console.Error.WriteLine($"'{path}' does not exist");
+            return 1;
+        }
+        var lexer = new Lexer(File.ReadAllText(combinedPath), combinedPath);
+        combinedTokens.AddRange(lexer.Lex());
+    }
 
-    var parser = new Parser(tokens);
+    var parser = new Parser(combinedTokens);
     var stmts = parser.Parse();
 
     var semantics = new Semantics();
@@ -29,12 +65,52 @@ try
     var emitter = new Emitter(lowerer);
     emitter.EmitInstructions();
 
-    var generator = new SourceGenerator(emitter);
-    generator.Generate(outputPath, mainInfo.Item1, mainInfo.Item2);
+    string generatedCPath = Path.Join(outputPath, "generated_c.c");
 
-    File.WriteAllText(outputPath, generator.Result.ToString());
+    var generator = new SourceGenerator(emitter);
+    generator.Generate(generatedCPath, mainInfo.Item1, mainInfo.Item2);
+
+    File.WriteAllText(generatedCPath, generator.Result.ToString());
+
+    var options = lenkCProject.BuildOptions;
+
+    string exePath = Path.Join(outputPath, options.OutputExe);
+
+    var startInfo = new ProcessStartInfo
+    {
+        FileName = options.Compiler,
+        UseShellExecute = false
+    };
+
+    startInfo.ArgumentList.Add(generatedCPath);
+    startInfo.ArgumentList.Add("-o");
+    startInfo.ArgumentList.Add(exePath);
+
+    foreach (string arg in options.CompilerArgs)
+        startInfo.ArgumentList.Add(arg);
+
+    using var process = Process.Start(startInfo);
+    if (process == null)
+    {
+        Console.Error.WriteLine("Failed to start c compiler");
+        return 1;
+    }
+
+    process.WaitForExit();
+
+    if (process.ExitCode != 0)
+    {
+        Console.Error.WriteLine($"C compiler exited with code {process.ExitCode}");
+        return 1;
+    }
+
+    if (!options.KeepGeneratedC)
+        File.Delete(generatedCPath);
+
+    return 0;
 }
 catch (Error error)
 {
     error.Exit();
+    return 1;
 }
