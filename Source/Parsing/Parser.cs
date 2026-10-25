@@ -937,7 +937,9 @@ class Parser
     public static Expr ParseExprText(string text, string source)
     {
         Lexer lexer = new Lexer(text, source);
-        Parser parser = new Parser(lexer.Lex());
+        var tokens = lexer.Lex();
+        tokens.Add(new Token(TokenType.Eof, "End of File", lexer.CurrentPos));
+        Parser parser = new Parser(tokens);
         return parser.ParseExpr();
     }
 }

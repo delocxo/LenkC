@@ -1,6 +1,8 @@
 {
     "sources": [
-        "main.lenkc"
+        "main.lenkc",
+        "list.lenkc",
+        "memory.lenkc"
     ],
     "buildOptions": {
         "compiler": "gcc",

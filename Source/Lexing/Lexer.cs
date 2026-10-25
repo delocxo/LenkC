@@ -5,9 +5,9 @@ using System.Text;
 
 class Lexer
 {
+    public Position CurrentPos;
     int _i;
     string _code;
-    Position _currentPos;
 
     static Dictionary<string, TokenType> s_keywords = new Dictionary<string, TokenType>()
         {
@@ -92,7 +92,7 @@ class Lexer
     public Lexer(string code, string source)
     {
         _code = code;
-        _currentPos = new Position(1, 1, source);
+        CurrentPos = new Position(1, 1, source);
     }
 
     public List<Token> Lex()
@@ -113,7 +113,7 @@ class Lexer
 
                 if (tripleChar == "\"\"\"")
                 {
-                    var position = _currentPos;
+                    var position = CurrentPos;
 
                     Next();
                     Next();
@@ -139,7 +139,7 @@ class Lexer
                     }
 
                     if (!terminated)
-                        throw new Error("Unterminated triple-quoted string", _currentPos);
+                        throw new Error("Unterminated triple-quoted string", CurrentPos);
 
                     tokens.Add(new Token(TokenType.String, content.ToString(), position));
 
@@ -148,7 +148,7 @@ class Lexer
 
                 if (s_symbols.TryGetValue(tripleChar, out TokenType value))
                 {
-                    tokens.Add(new Token(value, tripleChar, _currentPos));
+                    tokens.Add(new Token(value, tripleChar, CurrentPos));
                     Next();
                     Next();
                     Next();
@@ -169,7 +169,7 @@ class Lexer
                 }
                 if (s_symbols.TryGetValue(doubleChar, out TokenType value))
                 {
-                    tokens.Add(new Token(value, doubleChar, _currentPos));
+                    tokens.Add(new Token(value, doubleChar, CurrentPos));
                     Next();
                     Next();
                     continue;
@@ -178,7 +178,7 @@ class Lexer
 
             if (s_symbols.TryGetValue(Char().ToString(), out TokenType otherValue))
             {
-                tokens.Add(new Token(otherValue, Char().ToString(), _currentPos));
+                tokens.Add(new Token(otherValue, Char().ToString(), CurrentPos));
                 Next();
                 continue;
             }
@@ -209,7 +209,7 @@ class Lexer
 
             if (Char() == '\'')
             {
-                Position position = _currentPos;
+                Position position = CurrentPos;
 
                 Next();
 
@@ -224,24 +224,22 @@ class Lexer
                 }
 
                 if (!NotAtEnd() || Char() != '\'')
-                    throw new Error("Unterminated character", _currentPos);
+                    throw new Error("Unterminated character", CurrentPos);
 
                 tokens.Add(new Token(TokenType.Char, c.ToString(), position));
                 Next();
                 continue;
             }
 
-            throw new Error($"Unexpected character '{Char()}'", _currentPos);
+            throw new Error($"Unexpected character '{Char()}'", CurrentPos);
         }
-
-        tokens.Add(new Token(TokenType.Eof, "End of File", _currentPos));
 
         return tokens;
     }
 
     Token LexString(bool allowEscapes, char target)
     {
-        Position position = _currentPos;
+        Position position = CurrentPos;
 
         Next();
 
@@ -259,7 +257,7 @@ class Lexer
         }
 
         if (!NotAtEnd())
-            throw new Error("Unterminated string", _currentPos);
+            throw new Error("Unterminated string", CurrentPos);
 
         Next();
 
@@ -268,7 +266,7 @@ class Lexer
 
     Token LexAlpha()
     {
-        Position position = _currentPos;
+        Position position = CurrentPos;
 
         StringBuilder sb = new StringBuilder();
 
@@ -288,7 +286,7 @@ class Lexer
 
     Token LexNumber()
     {
-        Position position = _currentPos;
+        Position position = CurrentPos;
 
         if (Char() == '0' && NotAtEnd(1))
         {
@@ -321,7 +319,7 @@ class Lexer
                     };
 
                     if (digit < 0 || digit >= numberBase)
-                        throw new Error("Invalid digit in number", _currentPos);
+                        throw new Error("Invalid digit in number", CurrentPos);
 
                     value = value * numberBase + digit;
                     hasDigits = true;
@@ -343,10 +341,10 @@ class Lexer
             if (Char() == '.')
             {
                 if (hasDecimal)
-                    throw new Error("Number already contains a decimal", _currentPos);
+                    throw new Error("Number already contains a decimal", CurrentPos);
 
                 if (!NotAtEnd(1) || !char.IsDigit(Char(1)))
-                    throw new Error("Expected number after decimal", _currentPos);
+                    throw new Error("Expected number after decimal", CurrentPos);
 
                 hasDecimal = true;
             }
@@ -359,7 +357,7 @@ class Lexer
 
     char LexEscape()
     {
-        Position escapePos = _currentPos;
+        Position escapePos = CurrentPos;
 
         Next();
 
@@ -394,11 +392,11 @@ class Lexer
     {
         if (Char() == '\n')
         {
-            _currentPos.Line++;
-            _currentPos.Column = 1;
+            CurrentPos.Line++;
+            CurrentPos.Column = 1;
         }
         else
-            _currentPos.Column++;
+            CurrentPos.Column++;
         _i++;
     }
 }

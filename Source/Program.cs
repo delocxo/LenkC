@@ -39,6 +39,7 @@ Directory.CreateDirectory(outputPath);
 try
 {
     List<Token> combinedTokens = [];
+    Position lastPosition = new();
 
     foreach (string path in lenkCProject.Sources)
     {
@@ -50,7 +51,10 @@ try
         }
         var lexer = new Lexer(File.ReadAllText(combinedPath), combinedPath);
         combinedTokens.AddRange(lexer.Lex());
+        lastPosition = lexer.CurrentPos;
     }
+
+    combinedTokens.Add(new Token(TokenType.Eof, "End of File", lastPosition));
 
     var parser = new Parser(combinedTokens);
     var stmts = parser.Parse();
