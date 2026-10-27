@@ -148,7 +148,10 @@ class Emitter
                         .ToList()
                         .ForEach(x =>
                         {
-                            Emit("typedef struct {");
+                            if (x.IsUnion)
+                                Emit("typedef union {");
+                            else
+                                Emit("typedef struct {");
 
                             IndentLevel++;
 
@@ -315,6 +318,12 @@ class Emitter
                     string target = EmitValue(cIrMemberSet.Target);
                     string value = EmitValue(cIrMemberSet.Value);
                     return $"({target}).{cIrMemberSet.Member} = {value}";
+                }
+
+            case CIrInit cIrInit:
+                {
+                    string vlaue = EmitValue(cIrInit.Value);
+                    return $"({cIrInit.StructSymbol.CName}){{ .{cIrInit.Member} = {vlaue} }}";
                 }
         }
 

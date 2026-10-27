@@ -1,0 +1,64 @@
+native(void, """#include <stdio.h>""");
+
+union struct ResultData<T, E>
+{
+    T value;
+    E error;
+}
+
+struct Result<T, E>
+{
+    bool isOk;
+    ResultData::<T, E> data;
+}
+
+@Result::<T, E> Ok<T, E>(T value)
+{
+    return Result::<T, E>(
+        true,
+        ResultData::<T, E>{value = value}
+    );
+}
+
+@Result::<T, E> Err<T, E>(E error)
+{
+    return Result::<T, E>(
+        false,
+        ResultData::<T, E>{error = error}
+    );
+}
+
+@Result::<int, string> divide(int a, int b)
+{
+    if (b == 0)
+    {
+        return Err::<int, string>("Cannont divide by zero");
+    }
+
+    return Ok::<int, string>(a / b);
+}
+
+@void println<T>(T value)
+{
+    native(void, #printf("${fmt(T)}\n", ${value});#);
+}
+
+@int main()
+{
+    let Result::<int, string> result = divide(20, 2);
+
+    if (result.isOk)
+    {
+        let int answer = result.data.value;
+        println::<int>(answer);
+        return answer;
+    }
+    else
+    {
+        let string error = result.data.error;
+        println::<string>(error);
+        return 1;
+    }
+
+    return 0;
+}

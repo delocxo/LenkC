@@ -46,6 +46,8 @@ class Parser
             return ParseStruct();
         if (Check(TokenType.Type))
             return ParseType();
+        if (Check(TokenType.Union))
+            return ParseStruct();
         return ParseExprStmt();
     }
 
@@ -180,7 +182,11 @@ class Parser
 
     UnboundStructStmt ParseStruct()
     {
-        Position position = PosNext();
+        Position position = Current().Position;
+
+        bool isUnion = Match(TokenType.Union);
+
+        Expect(TokenType.Struct);
 
         string name = ParseName("Expected struct name");
 
@@ -201,7 +207,7 @@ class Parser
 
         Expect(TokenType.RightBrace);
 
-        return new(name, typeParameters, fields, position);
+        return new(name, typeParameters, fields, position, isUnion: isUnion);
     }
 
     TypeStmt ParseType()
@@ -268,8 +274,13 @@ class Parser
                 )
             );
         }
-        else if (Match(TokenType.Struct))
+        else if (Check(TokenType.Union) || Match(TokenType.Struct))
         {
+            bool isUnion = Match(TokenType.Union);
+
+            if (isUnion)
+                Expect(TokenType.Struct);
+
             Expect(TokenType.LeftBrace);
 
             List<UnboundField> fields = [];
@@ -282,14 +293,13 @@ class Parser
 
             Expect(TokenType.RightBrace);
 
-            return new(name, cname, position, TypeofType.Struct, null, new(name, [], fields, position, false, cname));
+            return new(name, cname, position, TypeofType.Struct, null, new(name, [], fields, position, false, cname, isUnion: isUnion));
         }
 
         Expect(TokenType.Semicolon);
 
         return new(name, cname, position, TypeofType.Regular);
     }
-
 
     IfBranch ParseBranch()
     {
@@ -650,7 +660,7 @@ class Parser
     Expr ParsePostfix()
     {
         Expr left = ParsePrimary();
-        while (Check(TokenType.LeftParen, TokenType.LeftBracket, TokenType.Period))
+        while (Check(TokenType.LeftParen, TokenType.LeftBracket, TokenType.Period, TokenType.LeftBrace))
         {
             if (Check(TokenType.LeftParen))
             {
@@ -688,6 +698,25 @@ class Parser
                 var typeArguments = ParseTypeArguments();
 
                 left = new MemberExpr(left, new NameExpr(name, typeArguments, nameExprPosition), position);
+
+                continue;
+            }
+
+            if (Check(TokenType.LeftBrace))
+            {
+                Position position = Current().Position;
+
+                Next();
+
+                string name = ParseName("Expected member name");
+
+                Expect(TokenType.Equal);
+
+                var expr = ParseExpr();
+
+                Expect(TokenType.RightBrace);
+
+                left = new UnboundInitExpr(left, name, expr, position);
 
                 continue;
             }

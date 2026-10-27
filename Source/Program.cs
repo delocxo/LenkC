@@ -36,7 +36,8 @@ if (args.Length > 1)
                 "compilerArgs": [],
                 "outputPath": "dist",
                 "outputExe": "{{projectName}}.exe",
-                "keepGeneratedC": true
+                "keepGeneratedC": true,
+                "runAfterCompile": true
             }
         }
         """;
@@ -159,6 +160,9 @@ try
 
     if (!options.KeepGeneratedC)
         File.Delete(generatedCPath);
+
+    if (options.RuntAfterCompile)
+        Process.Start($"{exePath}").WaitForExit();
 
     return 0;
 }

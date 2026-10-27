@@ -499,6 +499,9 @@ class Semantics
 
                             var structSymbol = (StructSymbol)ResolveSymbol(symbol);
 
+                            if (structSymbol.IsUnion)
+                                throw new Error("Union cannot be constructed via call-syntax", callExpr.Position);
+
                             if (callExpr.Arguments.Count != structSymbol.Fields.Count)
                                 throw new Error($"Struct '{structSymbol.Name}' requires {structSymbol.Fields.Count} arguments, got {callExpr.Arguments.Count}", callExpr.Position);
 
@@ -649,6 +652,37 @@ class Semantics
                         TypeSymbol.Bool
                     );
                 }
+
+            case UnboundInitExpr unboundInitExpr:
+                {
+                    if (unboundInitExpr.Target is NameExpr nameExpr)
+                    {
+                        if (s_structs.ContainsKey(nameExpr.Name))
+                        {
+                            var symbol = new NamePSymbol(nameExpr.Name, nameExpr.TypeArguments, nameExpr.Position);
+
+                            var structSymbol = (StructSymbol)ResolveSymbol(symbol);
+
+                            if (!structSymbol.IsUnion)
+                                throw new Error("Only unions can be constructed by brace-syntax", unboundInitExpr.Position);
+
+                            // if (unboundInitExpr.Arguments.Count != structSymbol.Fields.Count)
+                            //     throw new Error($"Struct '{structSymbol.Name}' requires {structSymbol.Fields.Count} arguments, got {callExpr.Arguments.Count}", callExpr.Position);
+
+                            if (structSymbol.Fields.Find(field => field.Name == unboundInitExpr.Member) == null)
+                                throw new Error($"'{unboundInitExpr.Member}' does not exist in union '{structSymbol.Name}'", unboundInitExpr.Position);
+
+                            Expr value = CheckExpr(unboundInitExpr.Value);
+
+                            return new(
+                                new BoundInitExpr(structSymbol, unboundInitExpr.Member, value, unboundInitExpr.Position),
+                                structSymbol
+                            );
+                        }
+                    }
+
+                    throw new Error("Only unions can be constructed by brace-syntax", unboundInitExpr.Position);
+                }
         }
 
         throw new UnreachableException($"Invalid expression: {expr.GetType().Name}");
@@ -676,7 +710,7 @@ class Semantics
                             .ToList();
 
                         List<BoundField> fields = [];
-                        StructSymbol structSymbol = new(unboundStruct.Name, unboundStruct.CName, fields, typeArguments);
+                        StructSymbol structSymbol = new(unboundStruct.Name, unboundStruct.CName, fields, typeArguments, unboundStruct.IsUnion);
 
                         string key = TypeKey(structSymbol);
 
@@ -771,7 +805,7 @@ class Semantics
             string.Join("_", function.ParameterTypes.Select(TypeKey)) +
             $"_ret_{TypeKey(function.ReturnType)}_end",
         StructSymbol structSymbol =>
-            $"struct_" + structSymbol.Name + "_" + $"{structSymbol.TypeArguments.Count}_" +
+            (structSymbol.IsUnion ? $"union_" : $"struct_") + structSymbol.Name + "_" + $"{structSymbol.TypeArguments.Count}_" +
             string.Join("_", structSymbol.TypeArguments.Select(TypeKey)) +
             "_end",
         _ => type.Name
@@ -796,5 +830,41 @@ class Semantics
         var bound = BoundFunction(mainfunction, [], mainfunction.Position);
 
         return (bound.Name, mainfunction.Parameters.Count);
+    }
+
+    public bool FitsInteger(BigInteger value, NumericSymbol numericSymbol)
+    {
+        if (numericSymbol.IsFloat)
+            return false;
+
+        BigInteger min = 0;
+        BigInteger max = 0;
+
+        if (numericSymbol.IsSigned)
+        {
+            int bits = numericSymbol.Bits - 1;
+
+            min = -BigInteger.Pow(2, bits);
+            max = BigInteger.Pow(2, bits) - 1;
+        }
+        else
+        {
+            max = BigInteger.Pow(2, numericSymbol.Bits) - 1;
+        }
+
+        return value >= min && value <= max;
+    }
+
+    public bool FitsFloat(double value, NumericSymbol type)
+    {
+        if (!type.IsFloat || !double.IsFinite(value))
+            return false;
+
+        return type.Bits switch
+        {
+            32 => Math.Abs(value) <= float.MaxValue,
+            64 => true,
+            _ => false
+        };
     }
 }

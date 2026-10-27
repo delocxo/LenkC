@@ -58,6 +58,25 @@ record TypeSymbol(string Name, string CName, string? FormatSymbol)
         if (this is StructSymbol sl && other is StructSymbol sr)
             return ReferenceEquals(sl, sr);
 
+        if (this is NumericSymbol nl && other is NumericSymbol nr)
+        {
+            if (nl.IsFloat && nr.IsFloat)
+                return nl.Bits >= nr.Bits;
+
+            if (!nl.IsFloat && !nr.IsFloat)
+            {
+                if (nl.IsSigned == nr.IsSigned)
+                    return nl.Bits >= nr.Bits;
+
+                if (nl.IsSigned && !nr.IsSigned)
+                    return nl.Bits > nr.Bits;
+
+                return false;
+            }
+
+            return false;
+        }
+
         return this == other;
     }
 }
@@ -86,4 +105,4 @@ record CharSymbol() : TypeSymbol("char", "char", "%c");
 record VoidSymbol() : TypeSymbol("void", "void", null);
 record PointerSymbol(TypeSymbol Inner) : TypeSymbol("", "", "%p");
 record FunctionSymbol(TypeSymbol ReturnType, List<TypeSymbol> ParameterTypes) : TypeSymbol("", "", null);
-record StructSymbol(string Name, string CName, List<BoundField> Fields, List<TypeSymbol> TypeArguments) : TypeSymbol(Name, CName, null);
+record StructSymbol(string Name, string CName, List<BoundField> Fields, List<TypeSymbol> TypeArguments, bool IsUnion) : TypeSymbol(Name, CName, null);

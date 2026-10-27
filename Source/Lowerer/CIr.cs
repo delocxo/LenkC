@@ -31,3 +31,4 @@ record CIrIndex(CIrValue Target, CIrValue Index) : CIrValue;
 record CIrIndexSet(CIrValue Target, CIrValue Index, CIrValue Value) : CIrValue;
 record CIrMember(CIrValue Target, string Member) : CIrValue;
 record CIrMemberSet(CIrValue Target, string Member, CIrValue Value) : CIrValue;
+record CIrInit(StructSymbol StructSymbol, string Member, CIrValue Value) : CIrValue;

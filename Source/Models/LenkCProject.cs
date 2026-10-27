@@ -10,5 +10,6 @@ record BuildOptions(
     [property: JsonPropertyName("compilerArgs")] string[] CompilerArgs,
     [property: JsonPropertyName("outputPath")] string OutputPath,
     [property: JsonPropertyName("outputExe")] string OutputExe,
-    [property: JsonPropertyName("keepGeneratedC")] bool KeepGeneratedC
+    [property: JsonPropertyName("keepGeneratedC")] bool KeepGeneratedC,
+    [property: JsonPropertyName("runAfterCompile")] bool RuntAfterCompile
 );

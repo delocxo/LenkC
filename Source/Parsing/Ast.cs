@@ -32,6 +32,8 @@ record IndexAssignExpr(IndexExpr IndexExpr, Expr Value) : Expr(IndexExpr.Positio
 record MemberExpr(Expr Target, NameExpr Member, Position Position) : Expr(Position);
 record MemberAssignExpr(Expr Target, string Member, Expr Value, Position Position) : Expr(Position);
 record TypeIsExpr(PSymbol Left, PSymbol Right, Position Position) : Expr(Position);
+record UnboundInitExpr(Expr Target, string Member, Expr Value, Position Position) : Expr(Position);
+record BoundInitExpr(StructSymbol Struct, string Member, Expr Value, Position Position) : Expr(Position);
 record ResolvedExpr(Expr Expr, TypeSymbol TypeSymbol) : Expr(Expr.Position);
 
 abstract class Stmt
@@ -215,13 +217,21 @@ class ReturnStmt : Stmt
 
 class UnboundStructStmt : Stmt
 {
-    public UnboundStructStmt(string name, List<string> typeParameters, List<UnboundField> fields, Position position, bool mangleName = true, string cName = "") : base(position)
+    public UnboundStructStmt(
+        string name,
+        List<string> typeParameters,
+        List<UnboundField> fields,
+        Position position,
+        bool mangleName = true,
+        string cName = "",
+        bool isUnion = false) : base(position)
     {
         Name = name;
         TypeParameters = typeParameters;
         Fields = fields;
         MangleName = mangleName;
         CName = cName;
+        IsUnion = isUnion;
     }
 
     public string Name { get; }
@@ -229,6 +239,7 @@ class UnboundStructStmt : Stmt
     public List<UnboundField> Fields { get; }
     public bool MangleName { get; }
     public string CName { get; }
+    public bool IsUnion { get; }
 }
 
 enum TypeofType
@@ -254,4 +265,32 @@ class TypeStmt : Stmt
     public TypeofType TypeofType { get; }
     public NumericSymbol? NumericSymbol { get; }
     public UnboundStructStmt? StructStmt { get; }
+}
+
+class UnboundEnumValue
+{
+    public UnboundEnumValue(PSymbol? symbol, string name, Expr? expr, Position position)
+    {
+        Symbol = symbol;
+        Name = name;
+        Expr = expr;
+        Position = position;
+    }
+
+    public PSymbol? Symbol { get; }
+    public string Name { get; }
+    public Expr? Expr { get; }
+    public Position Position { get; }
+}
+
+class UnboundEnumStmt : Stmt
+{
+    public UnboundEnumStmt(string name, List<UnboundEnumValue> values, Position position) : base(position)
+    {
+        Name = name;
+        Values = values;
+    }
+
+    public string Name { get; }
+    public List<UnboundEnumValue> Values { get; }
 }

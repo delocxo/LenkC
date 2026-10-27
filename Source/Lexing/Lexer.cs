@@ -30,7 +30,8 @@ class Lexer
             { "struct", TokenType.Struct },
             { "type", TokenType.Type },
             { "numeric", TokenType.Numeric },
-            { "typeis", TokenType.TypeIs }
+            { "typeis", TokenType.TypeIs },
+            { "union", TokenType.Union }
         };
 
     static Dictionary<string, TokenType> s_symbols = new Dictionary<string, TokenType>()

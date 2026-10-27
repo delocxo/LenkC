@@ -228,6 +228,15 @@ class Lowerer
                     );
                 }
 
+            case BoundInitExpr boundInitExpr:
+                {
+                    return new CIrInit(
+                        boundInitExpr.Struct,
+                        boundInitExpr.Member,
+                        LowerExpr(boundInitExpr.Value)
+                    );
+                }
+
             case ResolvedExpr resolvedExpr:
                 return LowerExpr(resolvedExpr.Expr);
         }
