@@ -7,12 +7,28 @@ partial class Semantics
         if (stmt is UnboundLetStmt unboundLetStmt)
         {
             var type = ResolveSymbol(unboundLetStmt.PSymbol)
-                .RejectVoid("Cannot use void as a variable type", unboundLetStmt.Position); ;
+                .RejectVoid("Cannot use void as a variable type", unboundLetStmt.Position);
+
+            if (unboundLetStmt.Expr == null)
+            {
+                Scopes.Declare(unboundLetStmt.Name, type, unboundLetStmt.Position);
+
+                return new BoundLetStmt(
+                    type,
+                    unboundLetStmt.Name,
+                    null,
+                    unboundLetStmt.Position
+                );
+
+            }
             var resolvedExpr = CheckExpr(unboundLetStmt.Expr);
             if (resolvedExpr.TypeSymbol is NullSymbol && type is not PointerSymbol)
                 throw new Error("Cannont assign null to a non-pointer variable", unboundLetStmt.Position);
+
             resolvedExpr.TypeSymbol.RejectVoid("Expression cannot be void", unboundLetStmt.Position);
+
             Scopes.Declare(unboundLetStmt.Name, type, unboundLetStmt.Position);
+
             return new BoundLetStmt(
                 type,
                 unboundLetStmt.Name,
@@ -129,6 +145,12 @@ partial class Semantics
             if (!Scopes.AtGlobalLevel)
                 throw new Error($"Enum '{unboundEnumStmt.Name}' can only be defined at the top-level", unboundEnumStmt.Position);
             return unboundEnumStmt;
+        }
+        else if (stmt is UnboundExternFunctionStmt unboundExternFunctionStmt)
+        {
+            if (!Scopes.AtGlobalLevel)
+                throw new Error($"Extern '{unboundExternFunctionStmt.Name}' can only be defined at the top-level", unboundExternFunctionStmt.Position);
+            return unboundExternFunctionStmt;
         }
 
         throw new UnreachableException($"Invalid statement: {stmt.GetType().Name}");

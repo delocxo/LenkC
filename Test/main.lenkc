@@ -1,35 +1,9 @@
 native(void, """#include <stdio.h>""");
 
-enum int Permissions
+extern("printf") @int print(string format, ...);
+
+@int main()
 {
-    None = 0,
-    Read = 1 << 0,
-    Write = 1 << 1,
-    Execute = 1 << 2,
-    ReadWrite = Read | Write,
-    All = Read | Write | Execute
-}
-
-@int main(int argc, string` argv)
-{
-    let Permissions current = Permissions.ReadWrite;
-    let Permissions combined = Permissions.Read | Permissions.Write;
-    let Permissions all = Permissions.All;
-
-    native(void, #printf("Current: %d\n", ${current});#);
-    native(void, #printf("Combined: %d\n", ${combined});#);
-    native(void, #printf("All: %d\n", ${all});#);
-
-    if (current != 3)
-        return 1;
-
-    if (combined != 3)
-        return 2;
-
-    if (all != 7)
-        return 3;
-
-    native(void, #printf("ENUM TYPE TEST PASSED!\n");#);
-
+    print("Hello from named externs! %d\n", 42);
     return 0;
 }

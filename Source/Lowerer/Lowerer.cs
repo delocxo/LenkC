@@ -16,7 +16,7 @@ class Lowerer
         {
             case BoundLetStmt boundLetStmt:
                 {
-                    var value = LowerExpr(boundLetStmt.Expr);
+                    var value = boundLetStmt.Expr == null ? null : LowerExpr(boundLetStmt.Expr);
                     Instructions.Add(new CIrVariable(
                         boundLetStmt.TypeSymbol,
                         boundLetStmt.Name,
@@ -128,7 +128,7 @@ class Lowerer
                 return new CIrNull();
 
             case NameExpr nameExpr:
-                return new CIrLocal(nameExpr.Name);
+                return new CIrLocal(nameExpr.Name, nameExpr.IsExtern);
 
             case UnaryExpr unaryExpr:
                 {

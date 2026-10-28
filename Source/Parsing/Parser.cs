@@ -54,6 +54,8 @@ class Parser
             return null;
         if (Check(TokenType.Enum))
             return ParseEnum();
+        if (Check(TokenType.Extern))
+            return ParseExternFunction();
         return ParseExprStmt();
     }
 
@@ -71,6 +73,9 @@ class Parser
         var symbol = ParseSymbol();
 
         string name = ParseName("Expected variable name");
+
+        if (Match(TokenType.Semicolon))
+            return new(symbol, name, null, position);
 
         Expect(TokenType.Equal);
 
@@ -159,10 +164,10 @@ class Parser
 
         if (!Check(TokenType.RightParen))
         {
-            parameters.Add(ParseField());
+            parameters.Add(ParseField(true));
 
             while (Match(TokenType.Comma))
-                parameters.Add(ParseField());
+                parameters.Add(ParseField(true));
         }
 
         Expect(TokenType.RightParen);
@@ -213,7 +218,7 @@ class Parser
 
         while (!Check(TokenType.RightBrace))
         {
-            fields.Add(ParseField());
+            fields.Add(ParseField(false));
             Expect(TokenType.Semicolon);
         }
 
@@ -299,7 +304,7 @@ class Parser
 
             while (!Check(TokenType.RightBrace))
             {
-                fields.Add(ParseField());
+                fields.Add(ParseField(false));
                 Expect(TokenType.Semicolon);
             }
 
@@ -352,6 +357,44 @@ class Parser
         return new(symbol, name, values, position);
     }
 
+    UnboundExternFunctionStmt ParseExternFunction()
+    {
+        Position position = PosNext();
+
+        string? cname = null;
+
+        if (Match(TokenType.LeftParen))
+        {
+            cname = Current().Lexeme;
+            Eat("Expected extern C name", TokenType.String);
+            Expect(TokenType.RightParen);
+        }
+
+        Expect(TokenType.At);
+
+        var returnSymbol = ParseSymbol();
+
+        string name = ParseName();
+
+        Expect(TokenType.LeftParen);
+
+        List<UnboundField> parameters = [];
+
+        if (!Check(TokenType.RightParen))
+        {
+            parameters.Add(ParseField(true));
+
+            while (Match(TokenType.Comma))
+                parameters.Add(ParseField(true));
+        }
+
+        Expect(TokenType.RightParen);
+
+        Expect(TokenType.Semicolon);
+
+        return new(name, returnSymbol, parameters, position, cname == null ? name : cname);
+    }
+
     IfBranch ParseBranch()
     {
         Expect(TokenType.LeftParen);
@@ -366,12 +409,14 @@ class Parser
     }
 
 
-    UnboundField ParseField()
+    UnboundField ParseField(bool isFunciton)
     {
         Position pos = Current().Position;
+        if (isFunciton && Match(TokenType.Variadic))
+            return new(new PSymbol(pos), "variadic", pos, true);
         var symbol = ParseSymbol();
         string name = ParseName("Expected parameter name");
-        return new(symbol, name, pos);
+        return new(symbol, name, pos, false);
     }
 
     Error ThrowUnexpected()
@@ -510,12 +555,20 @@ class Parser
         {
             Expect(TokenType.LeftParen);
 
-            List<PSymbol> parameters = [];
+            List<FunctionParameterPSymbol> parameters = [];
 
             if (!Check(TokenType.RightParen))
             {
                 do
-                    parameters.Add(ParseSymbol());
+                {
+                    Position pos = Current().Position;
+                    if (Match(TokenType.Variadic))
+                        parameters.Add(new FunctionParameterPSymbol(new PSymbol(pos), true));
+                    else
+                        parameters.Add(
+                            new FunctionParameterPSymbol(ParseSymbol(), false)
+                        );
+                }
                 while (Match(TokenType.Comma));
             }
 

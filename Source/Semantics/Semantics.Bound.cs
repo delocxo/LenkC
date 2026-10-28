@@ -43,15 +43,22 @@ partial class Semantics
         var boundParameters = unboundFunctionStmt.Parameters
             .Select(x =>
             {
+                if (x.IsVariadic)
+                    return new BoundField(TypeSymbol.Void, x.Name, true);
                 var type = semantics.ResolveSymbol(x.Symbol);
                 type.RejectVoid("Cannont set a function parameter to null", x.Position);
-                return new BoundField(type, x.Name);
+                return new BoundField(type, x.Name, x.IsVariadic);
             }).ToList();
 
-        foreach (var boundParam in boundParameters)
+        foreach (var boundParam in boundParameters.Where(x => !x.IsVariadic))
             Scopes.Declare(boundParam.Name, boundParam.Type, unboundFunctionStmt.Position);
 
-        FunctionSymbol functionSymbol = new(returnType, boundParameters.Select(x => x.Type).ToList());
+        FunctionSymbol functionSymbol = new(returnType, boundParameters
+            .Where(x => !x.IsVariadic)
+            .Select(x => x.Type)
+            .ToList(),
+            boundParameters.Any(x => x.IsVariadic)
+        );
 
         List<Stmt> newBody = [];
 

@@ -55,8 +55,11 @@ class Emitter
             case CIrVariable cIrVariable:
                 {
                     string cName = TypeToCType(cIrVariable.Type, GetMangledName(cIrVariable.Name));
-                    string value = EmitValue(cIrVariable.Value);
-                    Emit($"{cName} = {value};");
+                    string value = cIrVariable.Value == null ? "" : EmitValue(cIrVariable.Value);
+                    if (cIrVariable.Value == null)
+                        Emit($"{cName};");
+                    else
+                        Emit($"{cName} = {value};");
                     break;
                 }
 
@@ -100,7 +103,12 @@ class Emitter
                     string name = TypeToCType(cIrFunction.Function.ReturnType, GetMangledName(cIrFunction.Name));
 
                     var parameters = cIrFunction.Function.Parameters
-                        .Select(x => TypeToCType(x.Type, GetMangledName(x.Name)));
+                        .Select(x =>
+                        {
+                            if (x.IsVariadic)
+                                return "...";
+                            return TypeToCType(x.Type, GetMangledName(x.Name));
+                        });
 
                     var stringParameters = string.Join(", ", parameters);
 
@@ -175,7 +183,7 @@ class Emitter
         switch (cIrValue)
         {
             case CIrLocal cIrLocal:
-                return GetMangledName(cIrLocal.Name);
+                return cIrLocal.IsExtern ? cIrLocal.Name : GetMangledName(cIrLocal.Name);
 
             case CIrLiteral cIrLiteral:
                 return cIrLiteral.Value switch
@@ -362,7 +370,11 @@ class Emitter
         if (typeSymbol is FunctionSymbol functionSymbol)
         {
             var parameters = functionSymbol.ParameterTypes
-                .Select(x => TypeToCType(x));
+                .Select(x => TypeToCType(x))
+                .ToList();
+
+            if (functionSymbol.IsVariadic)
+                parameters.Add("...");
 
             string parameterList = string.Join(", ", parameters);
 

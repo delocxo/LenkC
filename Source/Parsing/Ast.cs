@@ -10,7 +10,7 @@ record StringExpr(string Value, Position Position) : Expr(Position);
 record CharExpr(char Value, Position Position) : Expr(Position);
 record BoolExpr(bool Value, Position Position) : Expr(Position);
 record NullExpr(Position Position) : Expr(Position);
-record NameExpr(string Name, List<PSymbol> TypeArguments, Position Position) : Expr(Position);
+record NameExpr(string Name, List<PSymbol> TypeArguments, Position Position, bool IsExtern = false) : Expr(Position);
 record UnaryExpr(Expr Right, TokenType Op, Position Position) : Expr(Position);
 record BinaryExpr(Expr Left, Expr Right, TokenType Op, Position Position) : Expr(Position);
 record AssignExpr(string Name, Expr Value, Position Position) : Expr(Position);
@@ -49,7 +49,7 @@ abstract class Stmt
 
 class UnboundLetStmt : Stmt
 {
-    public UnboundLetStmt(PSymbol pSymbol, string name, Expr expr, Position position) : base(position)
+    public UnboundLetStmt(PSymbol pSymbol, string name, Expr? expr, Position position) : base(position)
     {
         PSymbol = pSymbol;
         Name = name;
@@ -58,12 +58,12 @@ class UnboundLetStmt : Stmt
 
     public PSymbol PSymbol { get; }
     public string Name { get; }
-    public Expr Expr { get; }
+    public Expr? Expr { get; }
 }
 
 class BoundLetStmt : Stmt
 {
-    public BoundLetStmt(TypeSymbol typeSymbol, string name, ResolvedExpr expr, Position position) : base(position)
+    public BoundLetStmt(TypeSymbol typeSymbol, string name, ResolvedExpr? expr, Position position) : base(position)
     {
         TypeSymbol = typeSymbol;
         Name = name;
@@ -72,7 +72,7 @@ class BoundLetStmt : Stmt
 
     public TypeSymbol TypeSymbol { get; }
     public string Name { get; }
-    public ResolvedExpr Expr { get; }
+    public ResolvedExpr? Expr { get; }
 }
 
 class InferStmt : Stmt
@@ -147,39 +147,44 @@ class ContinueStmt : Stmt
 
 class UnboundField
 {
-    public UnboundField(PSymbol symbol, string name, Position position)
+    public UnboundField(PSymbol symbol, string name, Position position, bool isVariadic)
     {
         Symbol = symbol;
         Name = name;
         Position = position;
+        IsVariadic = isVariadic;
     }
 
     public PSymbol Symbol { get; }
     public string Name { get; }
+    public bool IsVariadic { get; }
     public Position Position { get; }
 }
 
 class BoundField
 {
-    public BoundField(TypeSymbol type, string name)
+    public BoundField(TypeSymbol type, string name, bool isVariadic)
     {
         Type = type;
         Name = name;
+        IsVariadic = isVariadic;
     }
 
     public TypeSymbol Type { get; }
+    public bool IsVariadic { get; }
     public string Name { get; }
 }
 
 class UnboundFunctionStmt : Stmt
 {
-    public UnboundFunctionStmt(PSymbol returnType, string name, List<string> typeParameters, List<UnboundField> parameters, List<Stmt> body, Position position) : base(position)
+    public UnboundFunctionStmt(PSymbol returnType, string name, List<string> typeParameters, List<UnboundField> parameters, List<Stmt> body, Position position, bool isVariadic = false) : base(position)
     {
         ReturnType = returnType;
         Name = name;
         TypeParameters = typeParameters;
         Parameters = parameters;
         Body = body;
+        IsVariadic = isVariadic;
     }
 
     public PSymbol ReturnType { get; }
@@ -187,6 +192,7 @@ class UnboundFunctionStmt : Stmt
     public List<string> TypeParameters { get; }
     public List<UnboundField> Parameters { get; }
     public List<Stmt> Body { get; }
+    public bool IsVariadic { get; set; }
 }
 
 class BoundFunctionStmt : Stmt
@@ -293,4 +299,20 @@ class UnboundEnumStmt : Stmt
     public PSymbol Symbol { get; }
     public string Name { get; }
     public List<UnboundEnumValue> Values { get; }
+}
+
+class UnboundExternFunctionStmt : Stmt
+{
+    public UnboundExternFunctionStmt(string name, PSymbol returnType, List<UnboundField> unboundFields, Position position, string cName) : base(position)
+    {
+        Name = name;
+        ReturnType = returnType;
+        UnboundFields = unboundFields;
+        CName = cName;
+    }
+
+    public string Name { get; }
+    public PSymbol ReturnType { get; }
+    public List<UnboundField> UnboundFields { get; }
+    public string CName { get; }
 }

@@ -8,7 +8,7 @@
     For, In, Elif, Let, Infer, Native,
     GlobalNative, Cast, CName, Fmt,
     Struct, Type, Numeric, TypeIs,
-    Union,
+    Union, Extern,
 
     Add, Sub, Mul, Div, Mod,
     IsEqual, NotEqual, Less, Greater,
@@ -19,7 +19,7 @@
     Equal, Semicolon, LeftBracket, RightBracket,
     LeftBrace, RightBrace, LeftParen, RightParen,
     Comma, Period, Hash, Arrow, At, BackTick,
-    Varadic, DoubleColon, TripleQuotes,
+    Variadic, DoubleColon, TripleQuotes,
 
     Eof,
 }

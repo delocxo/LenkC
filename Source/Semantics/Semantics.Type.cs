@@ -51,7 +51,7 @@ partial class Semantics
                         foreach (var field in unboundStruct.Fields)
                         {
                             var symbol = ResolveSymbol(field.Symbol).RejectVoid($"'{field.Name}' cannont be void", field.Position);
-                            fields.Add(new(symbol, field.Name));
+                            fields.Add(new(symbol, field.Name, false));
                         }
 
                         foreach (var pair in previousTypes)
@@ -70,13 +70,29 @@ partial class Semantics
 
             case FunctionPSymbol functionPSymbol:
                 {
-                    var parameterTypes = functionPSymbol.Parameters
-                        .Select(ResolveSymbol)
-                        .ToList();
+                    bool isVariadic = false;
+
+
+                    List<TypeSymbol> parameterTypes = [];
+
+                    foreach (var parameter in functionPSymbol.Parameters)
+                    {
+                        if (parameter.IsVariadc)
+                        {
+                            if (isVariadic)
+                                throw new Error($"Theres already a variadic parameter", parameter.Symbol.Position);
+                            isVariadic = true;
+                        }
+                        else
+                            parameterTypes.Add(ResolveSymbol(parameter.Symbol));
+                    }
+
+                    if (isVariadic && !functionPSymbol.Parameters[^1].IsVariadc)
+                        throw new Error("Variadic parameter must be the last parameter", functionPSymbol.Position);
 
                     var returnType = ResolveSymbol(functionPSymbol.ReturnType);
 
-                    return new FunctionSymbol(returnType, parameterTypes);
+                    return new FunctionSymbol(returnType, parameterTypes, isVariadic);
                 }
 
             default:

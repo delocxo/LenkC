@@ -32,7 +32,8 @@ class Lexer
             { "numeric", TokenType.Numeric },
             { "typeis", TokenType.TypeIs },
             { "union", TokenType.Union },
-            { "enum", TokenType.Enum }
+            { "enum", TokenType.Enum },
+            { "extern", TokenType.Extern }
         };
 
     static Dictionary<string, TokenType> s_symbols = new Dictionary<string, TokenType>()
@@ -71,7 +72,7 @@ class Lexer
             { "=>", TokenType.Arrow },
             { "@", TokenType.At },
             { "`", TokenType.BackTick },
-            { "...", TokenType.Varadic },
+            { "...", TokenType.Variadic },
             { "::", TokenType.DoubleColon }
         };
 

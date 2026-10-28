@@ -123,6 +123,6 @@ record NullSymbol() : TypeSymbol("null", "NULL", "%p");
 record CharSymbol() : TypeSymbol("char", "char", "%c");
 record VoidSymbol() : TypeSymbol("void", "void", null);
 record PointerSymbol(TypeSymbol Inner) : TypeSymbol("", "", "%p");
-record FunctionSymbol(TypeSymbol ReturnType, List<TypeSymbol> ParameterTypes) : TypeSymbol("", "", null);
+record FunctionSymbol(TypeSymbol ReturnType, List<TypeSymbol> ParameterTypes, bool IsVariadic) : TypeSymbol("", "", null);
 record StructSymbol(string Name, string CName, List<BoundField> Fields, List<TypeSymbol> TypeArguments, bool IsUnion) : TypeSymbol(Name, CName, null);
 record EnumSymbol(TypeSymbol Type, string Name, Dictionary<string, BigInteger> Values);

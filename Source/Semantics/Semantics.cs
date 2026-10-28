@@ -1,6 +1,8 @@
 using System.Diagnostics;
 using System.Numerics;
 
+record ExternFunction(FunctionSymbol Function, string CName);
+
 partial class Semantics
 {
     public static Dictionary<string, (BoundFunctionStmt Function, FunctionSymbol Type)> BoundFunctions { get; } = [];
@@ -8,6 +10,7 @@ partial class Semantics
     static Dictionary<string, UnboundFunctionStmt> s_functions = [];
     static Dictionary<string, UnboundStructStmt> s_structs = [];
     static Dictionary<string, EnumSymbol> s_enums = [];
+    static Dictionary<string, ExternFunction> s_externFunctions = [];
 
     int _loopDepth = 0;
 
@@ -21,16 +24,15 @@ partial class Semantics
                 if (!s_functions.TryAdd(unboundFunction.Name, unboundFunction))
                     throw new Error($"'{unboundFunction.Name}' is an already existing function", unboundFunction.Position);
 
+                if (s_externFunctions.ContainsKey(unboundFunction.Name))
+                    throw new Error($"'{unboundFunction.Name}' is an already existing extern function", unboundFunction.Position);
+
                 HashSet<string> typeParameters = [];
                 foreach (var parameter in unboundFunction.TypeParameters)
                     if (!typeParameters.Add(parameter))
                         throw new Error($"'{parameter}' is a duplicate function type parameter", unboundFunction.Position);
 
-                HashSet<string> parameters = [];
-                foreach (var parameter in unboundFunction.Parameters)
-                    if (!parameters.Add(parameter.Name))
-                        throw new Error($"'{parameter.Name}' is a duplicate function parameter", parameter.Position);
-
+                unboundFunction.IsVariadic = CheckParametersAndIsVariadac(unboundFunction.Parameters, unboundFunction.Position);
             }
             else if (stmt is UnboundStructStmt structStmt)
             {
@@ -88,6 +90,36 @@ partial class Semantics
 
                 s_enums.Add(unboundEnumStmt.Name, new(numericSymbol, unboundEnumStmt.Name, values));
             }
+            else if (stmt is UnboundExternFunctionStmt externFunctionStmt)
+            {
+                if (s_externFunctions.ContainsKey(externFunctionStmt.Name))
+                    throw new Error($"'{externFunctionStmt.Name}' is an already existing extern function", externFunctionStmt.Position);
+
+                if (s_functions.ContainsKey(externFunctionStmt.Name))
+                    throw new Error($"'{externFunctionStmt.Name}' is an already existing function", externFunctionStmt.Position);
+
+                CheckParametersAndIsVariadac(externFunctionStmt.UnboundFields, externFunctionStmt.Position);
+
+                var returnType = ResolveSymbol(externFunctionStmt.ReturnType);
+
+                var boundParameters = externFunctionStmt.UnboundFields
+                .Select(x =>
+                {
+                    if (x.IsVariadic)
+                        return new BoundField(TypeSymbol.Void, x.Name, true);
+                    var type = ResolveSymbol(x.Symbol);
+                    type.RejectVoid("Cannont set a function parameter to null", x.Position);
+                    return new BoundField(type, x.Name, x.IsVariadic);
+                }).ToList();
+
+                FunctionSymbol functionSymbol = new(returnType, boundParameters
+                    .Where(x => !x.IsVariadic)
+                    .Select(x => x.Type)
+                    .ToList(),
+                    boundParameters.Any(x => x.IsVariadic));
+
+                s_externFunctions.Add(externFunctionStmt.Name, new(functionSymbol, externFunctionStmt.CName));
+            }
 
         foreach (var stmt in stmts)
             newStmts.Add(CheckStmt(stmt));
@@ -124,6 +156,9 @@ partial class Semantics
 
         if (mainfunction.Parameters.Count is not (0 or 2))
             throw new Error("Main can only take 0 or 2 parameters", mainfunction.Position);
+
+        if (mainfunction.IsVariadic)
+            throw new Error("Main cannot be variadic", mainfunction.Position);
 
         var returnType = ResolveSymbol(mainfunction.ReturnType);
 
@@ -210,5 +245,29 @@ partial class Semantics
 
         if (s_enums.ContainsKey(name))
             throw new Error($"'{name}' is already an existing enum", position);
+    }
+
+    public bool CheckParametersAndIsVariadac(List<UnboundField> functionParameters, Position position)
+    {
+        bool isVariadic = false;
+
+        HashSet<string> parameters = [];
+        foreach (var parameter in functionParameters)
+        {
+            if (!parameters.Add(parameter.Name))
+                throw new Error($"'{parameter.Name}' is a duplicate function parameter", parameter.Position);
+
+            if (parameter.IsVariadic)
+            {
+                if (isVariadic)
+                    throw new Error($"There is already a variadic parameter", parameter.Position);
+                isVariadic = true;
+            }
+        }
+
+        if (isVariadic && !functionParameters[^1].IsVariadic)
+            throw new Error($"Variadic parameter must be the last parameter of a function", position);
+
+        return isVariadic;
     }
 }

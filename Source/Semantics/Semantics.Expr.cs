@@ -36,6 +36,13 @@ partial class Semantics
                         return new(nameExpr with { Name = bound.Name }, bound.Symbol);
                     }
 
+                    if (s_externFunctions.TryGetValue(nameExpr.Name, out var externFunction))
+                    {
+                        if (typeArguments.Count > 0)
+                            throw new Error("Extern functions cant take type parameters", nameExpr.Position);
+                        return new(nameExpr with { Name = externFunction.CName, IsExtern = true }, externFunction.Function);
+                    }
+
                     if (Scopes.TryResolve(nameExpr.Name, out var local))
                     {
                         if (nameExpr.TypeArguments.Count > 0)
@@ -43,7 +50,7 @@ partial class Semantics
                         return new(nameExpr, local!.TypeSymbol);
                     }
 
-                    break;
+                    throw new Error($"'{nameExpr.Name}' does not exist", nameExpr.Position);
                 }
 
             case UnaryExpr unaryExpr:
@@ -249,11 +256,22 @@ partial class Semantics
 
                     if (target.TypeSymbol is FunctionSymbol functionSymbol)
                     {
-                        if (arguments.Count != functionSymbol.ParameterTypes.Count)
-                            throw new Error(
-                                $"Function expects {functionSymbol.ParameterTypes.Count} argument(s), got {arguments.Count}",
-                                callExpr.Position
-                            );
+                        if (functionSymbol.IsVariadic)
+                        {
+                            if (arguments.Count < functionSymbol.ParameterTypes.Count)
+                                throw new Error(
+                                    $"Function requires atleast {functionSymbol.ParameterTypes.Count} argument(s), got {arguments.Count}",
+                                    callExpr.Position
+                                );
+                        }
+                        else
+                        {
+                            if (arguments.Count != functionSymbol.ParameterTypes.Count)
+                                throw new Error(
+                                    $"Function expects {functionSymbol.ParameterTypes.Count} argument(s), got {arguments.Count}",
+                                    callExpr.Position
+                                );
+                        }
 
                         return new(new CallExpr(
                             target.Expr,
