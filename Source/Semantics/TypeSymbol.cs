@@ -1,3 +1,5 @@
+using System.Numerics;
+
 record TypeSymbol(string Name, string CName, string? FormatSymbol)
 {
     public static readonly StringSymbol String = new();
@@ -79,6 +81,23 @@ record TypeSymbol(string Name, string CName, string? FormatSymbol)
 
         return this == other;
     }
+
+    public sealed override string ToString()
+    {
+        return this switch
+        {
+            PointerSymbol pointer =>
+                $"{pointer.Inner}`",
+
+            FunctionSymbol function =>
+                $"@({string.Join(", ", function.ParameterTypes)}) => {function.ReturnType}",
+
+            StructSymbol str when str.TypeArguments.Count > 0 =>
+                $"{str.Name}::<{string.Join(", ", str.TypeArguments)}>",
+
+            _ => Name
+        };
+    }
 }
 
 record NumericSymbol(string Name, string CName, int Bits, bool IsFloat, bool IsSigned, string FormatSymbol) : TypeSymbol(Name, CName, FormatSymbol)
@@ -106,3 +125,4 @@ record VoidSymbol() : TypeSymbol("void", "void", null);
 record PointerSymbol(TypeSymbol Inner) : TypeSymbol("", "", "%p");
 record FunctionSymbol(TypeSymbol ReturnType, List<TypeSymbol> ParameterTypes) : TypeSymbol("", "", null);
 record StructSymbol(string Name, string CName, List<BoundField> Fields, List<TypeSymbol> TypeArguments, bool IsUnion) : TypeSymbol(Name, CName, null);
+record EnumSymbol(TypeSymbol Type, string Name, Dictionary<string, BigInteger> Values);

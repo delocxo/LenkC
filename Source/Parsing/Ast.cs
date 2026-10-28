@@ -269,15 +269,13 @@ class TypeStmt : Stmt
 
 class UnboundEnumValue
 {
-    public UnboundEnumValue(PSymbol? symbol, string name, Expr? expr, Position position)
+    public UnboundEnumValue(string name, Expr? expr, Position position)
     {
-        Symbol = symbol;
         Name = name;
         Expr = expr;
         Position = position;
     }
 
-    public PSymbol? Symbol { get; }
     public string Name { get; }
     public Expr? Expr { get; }
     public Position Position { get; }
@@ -285,12 +283,14 @@ class UnboundEnumValue
 
 class UnboundEnumStmt : Stmt
 {
-    public UnboundEnumStmt(string name, List<UnboundEnumValue> values, Position position) : base(position)
+    public UnboundEnumStmt(PSymbol symbol, string name, List<UnboundEnumValue> values, Position position) : base(position)
     {
+        Symbol = symbol;
         Name = name;
         Values = values;
     }
 
+    public PSymbol Symbol { get; }
     public string Name { get; }
     public List<UnboundEnumValue> Values { get; }
 }

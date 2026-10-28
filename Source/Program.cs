@@ -37,12 +37,22 @@ if (args.Length > 1)
                 "outputPath": "dist",
                 "outputExe": "{{projectName}}.exe",
                 "keepGeneratedC": true,
+                "runArgs": [],
                 "runAfterCompile": true
             }
         }
         """;
 
         File.WriteAllText(Path.Join(projectPath, "lenkc.json"), jsonTemplate);
+
+        string lenkcMainTemplate = """
+        @int main(int argc, string` argv)
+        {
+            return 0;
+        }
+        """;
+
+        File.WriteAllText(Path.Join(projectPath, "main.lenkc"), lenkcMainTemplate);
         return 0;
     }
 }
@@ -162,7 +172,7 @@ try
         File.Delete(generatedCPath);
 
     if (options.RuntAfterCompile)
-        Process.Start($"{exePath}").WaitForExit();
+        Process.Start($"{exePath}", options.CompilerArgs).WaitForExit();
 
     return 0;
 }

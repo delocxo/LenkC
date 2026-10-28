@@ -18,13 +18,15 @@ class Parser
 
         while (NotAtEnd())
         {
-            stmts.Add(ParseStmt());
+            var stmt = ParseStmt();
+            if (stmt != null)
+                stmts.Add(stmt);
         }
 
         return stmts;
     }
 
-    Stmt ParseStmt()
+    Stmt? ParseStmt()
     {
         if (Check(TokenType.Let))
             return ParseLet();
@@ -48,6 +50,10 @@ class Parser
             return ParseType();
         if (Check(TokenType.Union))
             return ParseStruct();
+        if (Match(TokenType.String))
+            return null;
+        if (Check(TokenType.Enum))
+            return ParseEnum();
         return ParseExprStmt();
     }
 
@@ -180,6 +186,12 @@ class Parser
         return new(expr, position);
     }
 
+    /*
+    ????
+    HORRIBLE
+    HORRIBLE
+    will remake later 
+    */
     UnboundStructStmt ParseStruct()
     {
         Position position = Current().Position;
@@ -301,6 +313,45 @@ class Parser
         return new(name, cname, position, TypeofType.Regular);
     }
 
+    UnboundEnumStmt ParseEnum()
+    {
+        UnboundEnumValue ParseEnumValue()
+        {
+            Position position = Current().Position;
+
+            string name = ParseName("Exepcted enum value name");
+
+            if (Match(TokenType.Equal))
+            {
+                Expr expr = ParseExpr();
+                return new(name, expr, position);
+            }
+
+            return new(name, null, position);
+        }
+
+        Position position = PosNext();
+
+        var symbol = ParseSymbol();
+
+        string name = ParseName("Expected enum name");
+
+        List<UnboundEnumValue> values = [];
+
+        Expect(TokenType.LeftBrace);
+
+        if (!Check(TokenType.RightBrace))
+        {
+            values.Add(ParseEnumValue());
+            while (Match(TokenType.Comma))
+                values.Add(ParseEnumValue());
+        }
+
+        Expect(TokenType.RightBrace);
+
+        return new(symbol, name, values, position);
+    }
+
     IfBranch ParseBranch()
     {
         Expect(TokenType.LeftParen);
@@ -356,14 +407,20 @@ class Parser
 
         if (!Check(TokenType.LeftBrace))
         {
-            stmts.Add(ParseStmt());
+            var stmt = ParseStmt();
+            if (stmt != null)
+                stmts.Add(stmt);
             return stmts;
         }
 
         Expect(TokenType.LeftBrace);
 
         while (NotAtEnd() && !Check(TokenType.RightBrace))
-            stmts.Add(ParseStmt());
+        {
+            var stmt = ParseStmt();
+            if (stmt != null)
+                stmts.Add(stmt);
+        }
 
         Expect(TokenType.RightBrace);
 

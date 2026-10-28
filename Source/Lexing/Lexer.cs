@@ -31,7 +31,8 @@ class Lexer
             { "type", TokenType.Type },
             { "numeric", TokenType.Numeric },
             { "typeis", TokenType.TypeIs },
-            { "union", TokenType.Union }
+            { "union", TokenType.Union },
+            { "enum", TokenType.Enum }
         };
 
     static Dictionary<string, TokenType> s_symbols = new Dictionary<string, TokenType>()
