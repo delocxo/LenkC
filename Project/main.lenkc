@@ -1,0 +1,10 @@
+native(void, "#include <stdio.h>");
+
+extern @void printf(string template, ...);
+
+macro INT_MAIN = (@int main(int argc, string` argv));
+
+INT_MAIN
+{
+    return 0;
+}

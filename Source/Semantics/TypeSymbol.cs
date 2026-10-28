@@ -27,10 +27,10 @@ record TypeSymbol(string Name, string CName, string? FormatSymbol)
         new("uint", "uint32_t", 32, false, false, "%u");
 
     public static readonly NumericSymbol Long =
-        new("long", "long long", 64, false, true, "%lld");
+        new("long", "int64_t", 64, false, true, "%lld");
 
     public static readonly NumericSymbol ULong =
-        new("ulong", "unsigned long long", 64, false, false, "%llu");
+        new("ulong", "uint64_t", 64, false, false, "%llu");
 
     public static readonly NumericSymbol Float =
         new("float", "float", 32, true, true, "%f");

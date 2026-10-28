@@ -1,9 +1,0 @@
-native(void, """#include <stdio.h>""");
-
-extern("printf") @int print(string format, ...);
-
-@int main()
-{
-    print("Hello from named externs! %d\n", 42);
-    return 0;
-}

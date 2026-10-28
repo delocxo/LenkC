@@ -2,10 +2,15 @@
 using System.Globalization;
 using System.Numerics;
 
+record Macro(string Name, List<string> Parameters, List<Token> Body);
+
 class Parser
 {
+    public static Dictionary<string, Macro> Macros { get; } = [];
+
     List<Token> _tokens;
     int _i = 0;
+    int _depth = 0;
 
     public Parser(List<Token> tokens)
     {
@@ -56,6 +61,20 @@ class Parser
             return ParseEnum();
         if (Check(TokenType.Extern))
             return ParseExternFunction();
+        if (Check(TokenType.Macro))
+        {
+            if (_depth > 0)
+                throw new Error("Macros can only be declared at the top level", Current().Position);
+            Next();
+            ParseMacro();
+            return null;
+        }
+        if (Check(TokenType.Identifier) && Macros.TryGetValue(Current().Lexeme, out var macro))
+        {
+            Position position = PosNext();
+            ExpandMacro(macro, position);
+            return ParseStmt();
+        }
         return ParseExprStmt();
     }
 
@@ -395,6 +414,57 @@ class Parser
         return new(name, returnSymbol, parameters, position, cname == null ? name : cname);
     }
 
+    void ParseMacro()
+    {
+        string name = ParseName("Expected macro name");
+
+        if (Macros.ContainsKey(name))
+            throw new Error($"'{name}' is an already existing macro", _tokens[_i - 2].Position);
+
+        List<string> parameters = [];
+
+        if (Check(TokenType.LeftParen))
+            parameters = ParseNames(TokenType.LeftParen, TokenType.RightParen);
+
+        Expect(TokenType.Equal);
+
+        List<Token> body = [];
+
+        if (!Check(TokenType.LeftParen))
+        {
+            body.Add(Current());
+            Next();
+        }
+        else
+        {
+            Expect(TokenType.LeftParen);
+
+            int depth = 1;
+
+            while (depth > 0)
+            {
+                Token currnet = Current();
+
+                if (currnet.TokenType == TokenType.Eof)
+                    throw new Error("Unterminated macro body", currnet.Position);
+
+                if (currnet.TokenType == TokenType.LeftParen)
+                    depth++;
+                else if (currnet.TokenType == TokenType.RightParen)
+                    depth--;
+
+                if (depth > 0)
+                    body.Add(currnet);
+
+                Next();
+            }
+        }
+
+        Expect(TokenType.Semicolon);
+
+        Macros.Add(name, new(name, parameters, body));
+    }
+
     IfBranch ParseBranch()
     {
         Expect(TokenType.LeftParen);
@@ -448,6 +518,8 @@ class Parser
 
     List<Stmt> ParseBody()
     {
+        _depth++;
+
         List<Stmt> stmts = new List<Stmt>();
 
         if (!Check(TokenType.LeftBrace))
@@ -455,6 +527,7 @@ class Parser
             var stmt = ParseStmt();
             if (stmt != null)
                 stmts.Add(stmt);
+            _depth--;
             return stmts;
         }
 
@@ -466,6 +539,8 @@ class Parser
             if (stmt != null)
                 stmts.Add(stmt);
         }
+
+        _depth--;
 
         Expect(TokenType.RightBrace);
 
@@ -689,6 +764,11 @@ class Parser
             return new BoolExpr(false, token.Position);
         else if (Match(TokenType.Identifier))
         {
+            if (Macros.TryGetValue(token.Lexeme, out var macro))
+            {
+                ExpandMacro(macro, token.Position);
+                return ParseExpr();
+            }
             List<PSymbol> typeParameters = ParseTypeArguments();
             return new NameExpr(token.Lexeme, typeParameters, token.Position);
         }
@@ -1080,5 +1160,71 @@ class Parser
         tokens.Add(new Token(TokenType.Eof, "End of File", lexer.CurrentPos));
         Parser parser = new Parser(tokens);
         return parser.ParseExpr();
+    }
+
+    List<Token> ExpandMacro(Macro macro, Position position)
+    {
+        if (macro.Parameters.Count == 0)
+        {
+            _i--;
+            _tokens.RemoveAt(_i);
+            _tokens.InsertRange(_i, macro.Body);
+            return macro.Body;
+        }
+
+        int start = _i - 1;
+
+        Expect(TokenType.LeftParen);
+
+        List<List<Token>> arguments = [];
+
+        do
+        {
+            List<Token> argument = [];
+            int depth = 0;
+
+            while (depth > 0 || !Check(TokenType.Comma, TokenType.RightParen))
+            {
+                Token token = Current();
+
+                if (Check(TokenType.Eof))
+                    throw new Error("Unterminated macro arguments", token.Position);
+
+                if (Check(TokenType.LeftParen)) depth++;
+                if (Check(TokenType.RightParen)) depth--;
+
+                argument.Add(token);
+                Next();
+            }
+
+            if (argument.Count == 0)
+                throw new Error("Expected macro argument", Current().Position);
+
+            arguments.Add(argument);
+        } while (Match(TokenType.Comma));
+
+        Expect(TokenType.RightParen);
+
+        if (arguments.Count != macro.Parameters.Count)
+            throw new Error($"Macro '{macro.Name}' expects {macro.Parameters.Count} arguments, got {arguments.Count}", position);
+
+        List<Token> newBody = [];
+        var bindings = macro.Parameters
+            .Zip(arguments)
+            .ToDictionary(x => x.First, x => x.Second);
+
+        foreach (var token in macro.Body)
+        {
+            if (bindings.TryGetValue(token.Lexeme, out var arg))
+                newBody.AddRange(arg);
+            else
+                newBody.Add(token);
+        }
+
+        _tokens.RemoveRange(start, _i - start);
+        _tokens.InsertRange(start, newBody);
+        _i = start;
+
+        return newBody;
     }
 }
