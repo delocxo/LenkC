@@ -172,7 +172,11 @@ try
         File.Delete(generatedCPath);
 
     if (options.RuntAfterCompile)
-        Process.Start($"{exePath}", options.CompilerArgs).WaitForExit();
+    {
+        var proccess = Process.Start($"{exePath}", options.CompilerArgs);
+        proccess.WaitForExit();
+        return proccess.ExitCode;
+    }
 
     return 0;
 }
