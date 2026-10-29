@@ -4,6 +4,13 @@ So i've always liked C but no generics makes it hard to do stuff.
 
 So my language compiles to C but has generics.
 
-Member functions later.
+### Typechecking
+Now I don't have a full typechecker implemented but maybe soon.
+For now its alright.
 
-NO, i'm NOT doing any type checking. Why should I implement a full type checker when the C compiler can do it for me?
+### Future Ideas
+I want to add member functions and sophisticated macros.
+
+### What needs finishing
+Macros having variadic parameters and namespaces supporting types.
+It currently only supports functions and extern functions.
