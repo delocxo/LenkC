@@ -7,10 +7,10 @@ partial class Semantics
 {
     public static Dictionary<string, (BoundFunctionStmt Function, FunctionSymbol Type)> BoundFunctions { get; } = [];
     public static Dictionary<string, StructSymbol> BoundStructs { get; } = [];
-    static Dictionary<string, UnboundFunctionStmt> s_functions = [];
+    static Dictionary<(string? Parent, string Name), UnboundFunctionStmt> s_functions = [];
     static Dictionary<string, UnboundStructStmt> s_structs = [];
     static Dictionary<string, EnumSymbol> s_enums = [];
-    static Dictionary<string, ExternFunction> s_externFunctions = [];
+    static Dictionary<(string? Parent, string Name), ExternFunction> s_externFunctions = [];
 
     int _loopDepth = 0;
 
@@ -21,10 +21,10 @@ partial class Semantics
         foreach (Stmt stmt in stmts)
             if (stmt is UnboundFunctionStmt unboundFunction)
             {
-                if (!s_functions.TryAdd(unboundFunction.Name, unboundFunction))
+                if (!s_functions.TryAdd((unboundFunction.Parent, unboundFunction.Name), unboundFunction))
                     throw new Error($"'{unboundFunction.Name}' is an already existing function", unboundFunction.Position);
 
-                if (s_externFunctions.ContainsKey(unboundFunction.Name))
+                if (s_externFunctions.ContainsKey((unboundFunction.Parent, unboundFunction.Name)))
                     throw new Error($"'{unboundFunction.Name}' is an already existing extern function", unboundFunction.Position);
 
                 HashSet<string> typeParameters = [];
@@ -92,10 +92,10 @@ partial class Semantics
             }
             else if (stmt is UnboundExternFunctionStmt externFunctionStmt)
             {
-                if (s_externFunctions.ContainsKey(externFunctionStmt.Name))
+                if (s_externFunctions.ContainsKey((externFunctionStmt.Parent, externFunctionStmt.Name)))
                     throw new Error($"'{externFunctionStmt.Name}' is an already existing extern function", externFunctionStmt.Position);
 
-                if (s_functions.ContainsKey(externFunctionStmt.Name))
+                if (s_functions.ContainsKey((externFunctionStmt.Parent, externFunctionStmt.Name)))
                     throw new Error($"'{externFunctionStmt.Name}' is an already existing function", externFunctionStmt.Position);
 
                 CheckParametersAndIsVariadac(externFunctionStmt.UnboundFields, externFunctionStmt.Position);
@@ -118,7 +118,7 @@ partial class Semantics
                     .ToList(),
                     boundParameters.Any(x => x.IsVariadic));
 
-                s_externFunctions.Add(externFunctionStmt.Name, new(functionSymbol, externFunctionStmt.CName));
+                s_externFunctions.Add((externFunctionStmt.Parent, externFunctionStmt.Name), new(functionSymbol, externFunctionStmt.CName));
             }
 
         foreach (var stmt in stmts)
@@ -129,10 +129,9 @@ partial class Semantics
 
     void VerfiyUnboundStruct(UnboundStructStmt structStmt)
     {
-        if (!s_structs.TryAdd(structStmt.Name, structStmt))
-            throw new Error($"'{structStmt.Name}' is an already existing struct", structStmt.Position);
-
         TypeExist(structStmt.Name, structStmt.Position);
+
+        s_structs.Add(structStmt.Name, structStmt);
 
         HashSet<string> typeParameters = [];
         foreach (var parameter in structStmt.TypeParameters)
@@ -148,7 +147,7 @@ partial class Semantics
 
     public (string, int) CheckMain()
     {
-        if (!s_functions.TryGetValue("main", out var mainfunction))
+        if (!s_functions.TryGetValue((null, "main"), out var mainfunction))
             throw new Error("Program must declare a main function", null);
 
         if (mainfunction.TypeParameters.Count > 0)

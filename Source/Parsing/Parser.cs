@@ -170,7 +170,15 @@ class Parser
 
         var returnSymbol = ParseSymbol();
 
-        string name = ParseName();
+        string name = ParseName("Expected function or parent name");
+        string? parent = null;
+
+        if (Match(TokenType.Period))
+        {
+            string functionName = ParseName("Expected function name");
+            parent = name;
+            name = functionName;
+        }
 
         List<string> typeParameters = [];
 
@@ -193,7 +201,7 @@ class Parser
 
         var body = ParseBody();
 
-        return new(returnSymbol, name, typeParameters, parameters, body, position);
+        return new(returnSymbol, name, typeParameters, parameters, body, position, parent: parent);
     }
 
     ReturnStmt ParseReturn()
@@ -394,6 +402,14 @@ class Parser
         var returnSymbol = ParseSymbol();
 
         string name = ParseName();
+        string? parent = null;
+
+        if (Match(TokenType.Period))
+        {
+            string functionName = ParseName("Expected function name");
+            parent = name;
+            name = functionName;
+        }
 
         Expect(TokenType.LeftParen);
 
@@ -411,7 +427,7 @@ class Parser
 
         Expect(TokenType.Semicolon);
 
-        return new(name, returnSymbol, parameters, position, cname == null ? name : cname);
+        return new(name, returnSymbol, parameters, position, cname == null ? name : cname, parent);
     }
 
     void ParseMacro()

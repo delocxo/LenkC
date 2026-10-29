@@ -177,7 +177,15 @@ class BoundField
 
 class UnboundFunctionStmt : Stmt
 {
-    public UnboundFunctionStmt(PSymbol returnType, string name, List<string> typeParameters, List<UnboundField> parameters, List<Stmt> body, Position position, bool isVariadic = false) : base(position)
+    public UnboundFunctionStmt(
+        PSymbol returnType,
+        string name,
+        List<string> typeParameters,
+        List<UnboundField> parameters,
+        List<Stmt> body,
+        Position position,
+        bool isVariadic = false,
+        string? parent = null) : base(position)
     {
         ReturnType = returnType;
         Name = name;
@@ -185,6 +193,7 @@ class UnboundFunctionStmt : Stmt
         Parameters = parameters;
         Body = body;
         IsVariadic = isVariadic;
+        Parent = parent;
     }
 
     public PSymbol ReturnType { get; }
@@ -193,22 +202,25 @@ class UnboundFunctionStmt : Stmt
     public List<UnboundField> Parameters { get; }
     public List<Stmt> Body { get; }
     public bool IsVariadic { get; set; }
+    public string? Parent { get; }
 }
 
 class BoundFunctionStmt : Stmt
 {
-    public BoundFunctionStmt(TypeSymbol returnType, string name, List<BoundField> parameters, List<Stmt> body, Position position) : base(position)
+    public BoundFunctionStmt(TypeSymbol returnType, string name, List<BoundField> parameters, List<Stmt> body, Position position, string? parent) : base(position)
     {
         ReturnType = returnType;
         Name = name;
         Parameters = parameters;
         Body = body;
+        Parent = parent;
     }
 
     public TypeSymbol ReturnType { get; }
     public string Name { get; }
     public List<BoundField> Parameters { get; }
     public List<Stmt> Body { get; }
+    public string? Parent { get; }
 }
 
 class ReturnStmt : Stmt
@@ -303,16 +315,18 @@ class UnboundEnumStmt : Stmt
 
 class UnboundExternFunctionStmt : Stmt
 {
-    public UnboundExternFunctionStmt(string name, PSymbol returnType, List<UnboundField> unboundFields, Position position, string cName) : base(position)
+    public UnboundExternFunctionStmt(string name, PSymbol returnType, List<UnboundField> unboundFields, Position position, string cName, string? parent = null) : base(position)
     {
         Name = name;
         ReturnType = returnType;
         UnboundFields = unboundFields;
         CName = cName;
+        Parent = parent;
     }
 
     public string Name { get; }
     public PSymbol ReturnType { get; }
     public List<UnboundField> UnboundFields { get; }
     public string CName { get; }
+    public string? Parent { get; }
 }

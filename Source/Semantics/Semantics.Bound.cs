@@ -1,11 +1,14 @@
 partial class Semantics
 {
-    (FunctionSymbol Symbol, string Name) BoundFunction(UnboundFunctionStmt unboundFunctionStmt, List<TypeSymbol> typeArguments, Position position)
+    (FunctionSymbol Symbol, string Name) BoundFunction(UnboundFunctionStmt unboundFunctionStmt, List<TypeSymbol> typeArguments, Position position, string? parent = null)
     {
         if (typeArguments.Count != unboundFunctionStmt.TypeParameters.Count)
             throw new Error($"'{unboundFunctionStmt.Name}' expects {unboundFunctionStmt.TypeParameters.Count} argument(s), got {typeArguments.Count}", unboundFunctionStmt.Position);
 
         string key = $"function_{unboundFunctionStmt.Name}_" + string.Join("_", typeArguments.Select(TypeKey));
+
+        if (parent != null)
+            key = $"{parent}_{key}";
 
         if (BoundFunctions.TryGetValue(key, out var bound))
             return (bound.Type, key);
@@ -67,7 +70,8 @@ partial class Semantics
             unboundFunctionStmt.Name,
             boundParameters,
             newBody,
-            unboundFunctionStmt.Position
+            unboundFunctionStmt.Position,
+            parent
         ), functionSymbol);
 
         Scopes.FunctionLevel++;

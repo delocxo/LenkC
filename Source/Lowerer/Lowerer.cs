@@ -75,7 +75,8 @@ class Lowerer
             case UnboundFunctionStmt unboundFunctionStmt:
                 {
                     Semantics.BoundFunctions
-                        .Where(x => x.Value.Function.Name == unboundFunctionStmt.Name)
+                        .Where(x => x.Value.Function.Name == unboundFunctionStmt.Name &&
+                            x.Value.Function.Parent == unboundFunctionStmt.Parent)
                         .ToList()
                         .ForEach(x =>
                         {

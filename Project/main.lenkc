@@ -1,10 +1,87 @@
 native(void, "#include <stdio.h>");
 
-extern @void printf(string template, ...);
+extern("printf") @int Console.print(char` format, ...);
+extern("abs") @int Math.absolute(int value);
 
-macro INT_MAIN = (@int main(int argc, string` argv));
-
-INT_MAIN
+@int Math.add(int a, int b)
 {
+    return a + b;
+}
+
+@int Math.distance(int a, int b)
+{
+    return Math.absolute(a - b);
+}
+
+@int First.value()
+{
+    return 10;
+}
+
+@int Second.value()
+{
+    return 20;
+}
+
+@int value()
+{
+    return 30;
+}
+
+@T Values.identity<T>(T input)
+{
+    return input;
+}
+
+@T Values.first<T>(T a, T b)
+{
+    return a;
+}
+
+@int Checks.equal(int actual, int expected)
+{
+    Console.print("actual=%d expected=%d\n", actual, expected);
+
+    if (actual != expected)
+        return 1;
+
     return 0;
+}
+
+@int main()
+{
+    infer failures = 0;
+
+    Console.print("Namespaced functions:\n");
+    failures = failures + Checks.equal(Math.add(12, 8), 20);
+    failures = failures + Checks.equal(Math.distance(10, 35), 25);
+
+    Console.print("Same name, different namespaces:\n");
+    failures = failures + Checks.equal(First.value(), 10);
+    failures = failures + Checks.equal(Second.value(), 20);
+    failures = failures + Checks.equal(value(), 30);
+
+    Console.print("Generic functions:\n");
+    failures = failures + Checks.equal(
+        Values.identity::<int>(42), 42
+    );
+    failures = failures + Checks.equal(
+        Values.first::<int>(17, 99), 17
+    );
+
+    infer flag = Values.identity::<bool>(true);
+    if (!flag)
+        failures = failures + 1;
+
+    Console.print("Nested calls with externs:\n");
+    failures = failures + Checks.equal(
+        Math.add(
+            Math.absolute(-7),
+            Values.identity::<int>(Second.value())
+        ),
+        27
+    );
+
+    Console.print("Failures: %d\n", failures);
+    return failures;
 }

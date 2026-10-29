@@ -30,13 +30,13 @@ partial class Semantics
                             .Select(x => ResolveSymbol(x).RejectVoid("Type argument cannot be void", x.Position))
                             .ToList();
 
-                    if (s_functions.TryGetValue(nameExpr.Name, out var function))
+                    if (s_functions.TryGetValue((null, nameExpr.Name), out var function))
                     {
                         var bound = BoundFunction(function, typeArguments, nameExpr.Position);
                         return new(nameExpr with { Name = bound.Name }, bound.Symbol);
                     }
 
-                    if (s_externFunctions.TryGetValue(nameExpr.Name, out var externFunction))
+                    if (s_externFunctions.TryGetValue((null, nameExpr.Name), out var externFunction))
                     {
                         if (typeArguments.Count > 0)
                             throw new Error("Extern functions cant take type parameters", nameExpr.Position);
@@ -335,6 +335,9 @@ partial class Semantics
                 {
                     if (memberExpr.Target is NameExpr nameExpr)
                     {
+                        if (nameExpr.TypeArguments.Count > 0)
+                            throw new Error("Member target cannot have type parameters in this context", nameExpr.Position);
+
                         if (s_enums.TryGetValue(nameExpr.Name, out var enumSymbol))
                         {
                             if (memberExpr.Member.TypeArguments.Count > 0)
@@ -344,6 +347,22 @@ partial class Semantics
                                 throw new Error($"Enum '{enumSymbol.Name}' does not contain value '{memberExpr.Member.Name}'", memberExpr.Position);
 
                             return new(new IntExpr(value, memberExpr.Member.Position), enumSymbol.Type);
+                        }
+
+                        if (s_functions.TryGetValue((nameExpr.Name, memberExpr.Member.Name), out var function))
+                        {
+                            var typeArguments = memberExpr.Member.TypeArguments
+                                .Select(x => ResolveSymbol(x).RejectVoid("Type argument cannot be void", x.Position))
+                                .ToList();
+                            var bound = BoundFunction(function, typeArguments, nameExpr.Position, nameExpr.Name);
+                            return new(memberExpr.Member with { Name = bound.Name }, bound.Symbol);
+                        }
+
+                        if (s_externFunctions.TryGetValue((nameExpr.Name, memberExpr.Member.Name), out var externFunction))
+                        {
+                            if (memberExpr.Member.TypeArguments.Count > 0)
+                                throw new Error("Extern functions cant take type parameters", memberExpr.Member.Position);
+                            return new(nameExpr with { Name = externFunction.CName, IsExtern = true }, externFunction.Function);
                         }
                     }
 
