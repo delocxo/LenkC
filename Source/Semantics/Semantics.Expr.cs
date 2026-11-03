@@ -523,6 +523,12 @@ partial class Semantics
 
             case VacountExpr vacountExpr:
                 return new(new IntExpr(s_vacount, vacountExpr.Position), TypeSymbol.Int);
+
+            case UnboundDefaultExpr unboundDefaultExpr:
+                {
+                    var type = ResolveSymbol(unboundDefaultExpr.Symbol);
+                    return new(new BoundDefaultExpr(type, unboundDefaultExpr.Position), type);
+                }
         }
 
         throw new UnreachableException($"Invalid expression: {expr.GetType().Name}");

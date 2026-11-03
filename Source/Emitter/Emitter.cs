@@ -337,8 +337,14 @@ class Emitter
 
             case CIrInit cIrInit:
                 {
-                    string vlaue = EmitValue(cIrInit.Value);
-                    return $"({cIrInit.StructSymbol.CName}){{ .{cIrInit.Member} = {vlaue} }}";
+                    string value = EmitValue(cIrInit.Value);
+                    return $"({cIrInit.StructSymbol.CName}){{ .{cIrInit.Member} = {value} }}";
+                }
+
+            case CIrDefault cIrDefault:
+                {
+                    string type = TypeToCType(cIrDefault.TypeSymbol);
+                    return $"({type}){{0}}";
                 }
         }
 

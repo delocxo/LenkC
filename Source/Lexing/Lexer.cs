@@ -36,7 +36,8 @@ class Lexer
             { "extern", TokenType.Extern },
             { "macro", TokenType.Macro },
             { "nameof", TokenType.Nameof },
-            { "vacount", TokenType.Vacount }
+            { "vacount", TokenType.Vacount },
+            { "default", TokenType.Default }
         };
 
     static Dictionary<string, TokenType> s_symbols = new Dictionary<string, TokenType>()

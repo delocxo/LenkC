@@ -34,8 +34,10 @@ record MemberAssignExpr(Expr Target, string Member, Expr Value, Position Positio
 record TypeIsExpr(PSymbol Left, PSymbol Right, Position Position) : Expr(Position);
 record UnboundInitExpr(Expr Target, string Member, Expr Value, Position Position) : Expr(Position);
 record BoundInitExpr(StructSymbol Struct, string Member, Expr Value, Position Position) : Expr(Position);
-record ResolvedExpr(Expr Expr, TypeSymbol TypeSymbol) : Expr(Expr.Position);
 record VacountExpr(Position Position) : Expr(Position);
+record UnboundDefaultExpr(PSymbol Symbol, Position Position) : Expr(Position);
+record BoundDefaultExpr(TypeSymbol TypeSymbol, Position Position) : Expr(Position);
+record ResolvedExpr(Expr Expr, TypeSymbol TypeSymbol) : Expr(Expr.Position);
 
 abstract class Stmt
 {

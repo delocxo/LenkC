@@ -9,7 +9,7 @@
     GlobalNative, Cast, CName, Fmt,
     Struct, Type, Numeric, TypeIs,
     Union, Extern, Macro, Nameof,
-    Vacount,
+    Vacount, Default,
 
     Add, Sub, Mul, Div, Mod,
     IsEqual, NotEqual, Less, Greater,

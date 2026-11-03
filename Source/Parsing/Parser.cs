@@ -862,6 +862,16 @@ class Parser
         }
         else if (Match(TokenType.Vacount))
             return new VacountExpr(token.Position);
+        else if (Match(TokenType.Default))
+        {
+            Expect(TokenType.LeftParen);
+
+            var symbol = ParseSymbol();
+
+            Expect(TokenType.RightParen);
+
+            return new UnboundDefaultExpr(symbol, token.Position);
+        }
 
         throw ThrowUnexpected();
     }

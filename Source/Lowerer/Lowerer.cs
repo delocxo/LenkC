@@ -238,6 +238,11 @@ class Lowerer
                     );
                 }
 
+            case BoundDefaultExpr boundDefaultExpr:
+                {
+                    return new CIrDefault(boundDefaultExpr.TypeSymbol);
+                }
+
             case ResolvedExpr resolvedExpr:
                 return LowerExpr(resolvedExpr.Expr);
         }
