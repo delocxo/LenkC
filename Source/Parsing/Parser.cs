@@ -66,7 +66,7 @@ class Parser
             if (_depth > 0)
                 throw new Error("Macros can only be declared at the top level", Current().Position);
             Next();
-            ParseMacro();
+            ParseMacro(false);
             return null;
         }
         if (Check(TokenType.Identifier) && Macros.TryGetValue(Current().Lexeme, out var macro))
@@ -430,11 +430,11 @@ class Parser
         return new(name, returnSymbol, parameters, position, cname == null ? name : cname, parent);
     }
 
-    void ParseMacro()
+    void ParseMacro(bool register = true)
     {
         string name = ParseName("Expected macro name");
 
-        if (Macros.ContainsKey(name))
+        if (register && Macros.ContainsKey(name))
             throw new Error($"'{name}' is an already existing macro", _tokens[_i - 2].Position);
 
         List<string> parameters = [];
@@ -478,7 +478,8 @@ class Parser
 
         Expect(TokenType.Semicolon);
 
-        Macros.Add(name, new(name, parameters, body));
+        if (register)
+            Macros.Add(name, new(name, parameters, body));
     }
 
     IfBranch ParseBranch()
@@ -859,6 +860,8 @@ class Parser
 
             return new TypeIsExpr(left, right, token.Position);
         }
+        else if (Match(TokenType.Vacount))
+            return new VacountExpr(token.Position);
 
         throw ThrowUnexpected();
     }
@@ -1242,5 +1245,20 @@ class Parser
         _i = start;
 
         return newBody;
+    }
+
+    public void CollectMacros()
+    {
+        _i = 0;
+
+        while (NotAtEnd())
+        {
+            if (Match(TokenType.Macro))
+                ParseMacro();
+            else
+                Next();
+        }
+
+        _i = 0;
     }
 }

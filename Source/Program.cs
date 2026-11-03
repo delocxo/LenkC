@@ -117,6 +117,8 @@ try
     combinedTokens.Add(new Token(TokenType.Eof, "End of File", lastPosition));
 
     var parser = new Parser(combinedTokens);
+    parser.CollectMacros();
+
     var stmts = parser.Parse();
 
     var semantics = new Semantics();

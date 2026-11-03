@@ -17,6 +17,8 @@ class SourceGenerator
         Result.AppendLine("#include <stdlib.h>");
         Result.AppendLine("#include <stdint.h>");
 
+        Result.AppendLine(_emitter.ForwardDeclares.ToString());
+
         Result.AppendLine(_emitter.Ouput.ToString());
 
         Result.AppendLine(_emitter.Functions.ToString());

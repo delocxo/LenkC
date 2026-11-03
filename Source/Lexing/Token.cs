@@ -8,7 +8,8 @@
     For, In, Elif, Let, Infer, Native,
     GlobalNative, Cast, CName, Fmt,
     Struct, Type, Numeric, TypeIs,
-    Union, Extern, Macro,
+    Union, Extern, Macro, Nameof,
+    Vacount,
 
     Add, Sub, Mul, Div, Mod,
     IsEqual, NotEqual, Less, Greater,

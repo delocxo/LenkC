@@ -2,6 +2,8 @@ using System.Diagnostics;
 
 partial class Semantics
 {
+    static int s_vacount = 0;
+
     ResolvedExpr CheckExpr(Expr expr)
     {
         switch (expr)
@@ -223,8 +225,13 @@ partial class Semantics
 
             case CallExpr callExpr:
                 {
+                    ResolvedExpr? resolvedExpr = null;
                     if (callExpr.Target is NameExpr nameExpr)
                     {
+                        var typeArguments = nameExpr.TypeArguments
+                            .Select(x => ResolveSymbol(x).RejectVoid("Type argument cannot be void", x.Position))
+                            .ToList();
+
                         if (s_structs.ContainsKey(nameExpr.Name))
                         {
                             var symbol = new NamePSymbol(nameExpr.Name, nameExpr.TypeArguments, nameExpr.Position);
@@ -247,9 +254,58 @@ partial class Semantics
                                 ), structSymbol
                             );
                         }
+
+                        if (s_functions.TryGetValue((null, nameExpr.Name), out var function))
+                        {
+                            int previousVaCount = s_vacount;
+
+                            s_vacount = function.IsVariadic
+                                ? callExpr.Arguments.Count - function.Parameters.Count(p => !p.IsVariadic)
+                                : 0;
+
+                            var bound = BoundFunction(function, typeArguments, nameExpr.Position);
+
+                            resolvedExpr = new(
+                                nameExpr with { Name = bound.Name },
+                                bound.Symbol
+                            );
+
+                            s_vacount = previousVaCount;
+                        }
                     }
 
-                    var target = CheckExpr(callExpr.Target);
+                    if (callExpr.Target is MemberExpr memberExpr)
+                    {
+                        if (memberExpr.Target is NameExpr nameExpr1)
+                        {
+                            if (nameExpr1.TypeArguments.Count > 0)
+                                throw new Error("Member target cannot have type parameters in this context", nameExpr1.Position);
+
+                            if (s_functions.TryGetValue((nameExpr1.Name, memberExpr.Member.Name), out var function))
+                            {
+                                int previousVaCount = s_vacount;
+
+                                s_vacount = function.IsVariadic
+                                    ? callExpr.Arguments.Count - function.Parameters.Count(p => !p.IsVariadic)
+                                    : 0;
+
+                                var typeArguments = memberExpr.Member.TypeArguments
+                                    .Select(x => ResolveSymbol(x).RejectVoid("Type argument cannot be void", x.Position))
+                                    .ToList();
+
+                                var bound = BoundFunction(function, typeArguments, nameExpr1.Position, nameExpr1.Name);
+
+                                resolvedExpr = new(
+                                    memberExpr.Member with { Name = bound.Name },
+                                    bound.Symbol
+                                );
+
+                                s_vacount = previousVaCount;
+                            }
+                        }
+                    }
+
+                    var target = resolvedExpr ?? CheckExpr(callExpr.Target);
                     var arguments = callExpr.Arguments
                         .Select(x => CheckExpr(x).Expr)
                         .ToList();
@@ -459,6 +515,9 @@ partial class Semantics
 
                     throw new Error("Only unions can be constructed by brace-syntax", unboundInitExpr.Position);
                 }
+
+            case VacountExpr vacountExpr:
+                return new(new IntExpr(s_vacount, vacountExpr.Position), TypeSymbol.Int);
         }
 
         throw new UnreachableException($"Invalid expression: {expr.GetType().Name}");

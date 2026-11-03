@@ -7,6 +7,7 @@ class Emitter
 {
     public StringBuilder Ouput { get; } = new();
     public StringBuilder Functions { get; } = new();
+    public StringBuilder ForwardDeclares { get; } = new();
     public int IndentLevel { get; set; } = 0;
     Lowerer _lowerer;
 
@@ -157,9 +158,15 @@ class Emitter
                         .ForEach(x =>
                         {
                             if (x.IsUnion)
-                                Emit("typedef union {");
+                            {
+                                ForwardDeclares.AppendLine($"typedef union {x.CName} {x.CName};");
+                                Emit($"union {x.CName} {{");
+                            }
                             else
-                                Emit("typedef struct {");
+                            {
+                                ForwardDeclares.AppendLine($"typedef struct {x.CName} {x.CName};");
+                                Emit($"struct {x.CName} {{");
+                            }
 
                             IndentLevel++;
 
@@ -171,7 +178,7 @@ class Emitter
 
                             IndentLevel--;
 
-                            Emit($"}} {x.CName};");
+                            Emit("};");
                         });
                     break;
                 }
@@ -281,7 +288,7 @@ class Emitter
                 {
                     string target = EmitValue(cIrCall.Target);
                     string arguments = string.Join(", ", cIrCall.Arguments.Select(EmitValue));
-                    return $"({target})({arguments})";
+                    return $"{target}({arguments})";
                 }
 
             case CIrConstructer cIrConstructer:
