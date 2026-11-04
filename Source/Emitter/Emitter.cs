@@ -117,7 +117,7 @@ class Emitter
 
                     var stringParameters = string.Join(", ", parameters);
 
-                    Functions.AppendLine($"{name}({stringParameters});");
+                    Emit($"{name}({stringParameters});");
 
                     var instructions = GetInstructionsUntil<CIrFunctionEnd>();
 
