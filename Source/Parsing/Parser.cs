@@ -1212,7 +1212,7 @@ class Parser
             List<Token> argument = [];
             int depth = 0;
 
-            while (depth > 0 || !Check(TokenType.Comma, TokenType.RightParen))
+            while (depth > 0 || !Check(TokenType.Dollar, TokenType.RightParen))
             {
                 Token token = Current();
 
@@ -1230,7 +1230,7 @@ class Parser
                 throw new Error("Expected macro argument", Current().Position);
 
             arguments.Add(argument);
-        } while (Match(TokenType.Comma));
+        } while (Match(TokenType.Dollar));
 
         Expect(TokenType.RightParen);
 

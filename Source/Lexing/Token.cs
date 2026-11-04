@@ -21,6 +21,7 @@
     LeftBrace, RightBrace, LeftParen, RightParen,
     Comma, Period, Hash, Arrow, At, BackTick,
     Variadic, DoubleColon, TripleQuotes,
+    Dollar,
 
     Eof,
 }

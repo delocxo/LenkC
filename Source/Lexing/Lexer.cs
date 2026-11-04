@@ -77,7 +77,8 @@ class Lexer
             { "@", TokenType.At },
             { "`", TokenType.BackTick },
             { "...", TokenType.Variadic },
-            { "::", TokenType.DoubleColon }
+            { "::", TokenType.DoubleColon },
+            { "$", TokenType.Dollar }
         };
 
     public static string? GetKeywordFromType(TokenType type)

@@ -1,4 +1,6 @@
 # LenkC
+
+## Yes
 I don't know how to make a good README.
 
 So i've always liked C but no generics makes it hard to do stuff.
