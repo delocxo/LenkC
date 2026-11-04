@@ -1,0 +1,11 @@
+// Test
+@void variadic(...)
+{
+    let int x = dparam;    
+}
+
+@int main(int argc, string` argv)
+{
+    variadic();
+    return 0;
+}

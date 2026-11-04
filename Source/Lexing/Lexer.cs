@@ -37,7 +37,8 @@ class Lexer
             { "macro", TokenType.Macro },
             { "nameof", TokenType.Nameof },
             { "vacount", TokenType.Vacount },
-            { "default", TokenType.Default }
+            { "default", TokenType.Default },
+            { "dparam", TokenType.DParam }
         };
 
     static Dictionary<string, TokenType> s_symbols = new Dictionary<string, TokenType>()
@@ -78,7 +79,7 @@ class Lexer
             { "`", TokenType.BackTick },
             { "...", TokenType.Variadic },
             { "::", TokenType.DoubleColon },
-            { "$", TokenType.Dollar }
+            { "$", TokenType.Dollar },
         };
 
     public static string? GetKeywordFromType(TokenType type)

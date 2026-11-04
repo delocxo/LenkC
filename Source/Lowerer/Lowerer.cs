@@ -185,7 +185,7 @@ class Lowerer
                     if (callExpr.Struct != null)
                         return new CIrConstructer(callExpr.Struct, arguments);
                     var target = LowerExpr(callExpr.Target);
-                    return new CIrCall(target, arguments);
+                    return new CIrCall(target, arguments, callExpr.AddDummy);
                 }
 
             case BoundCNameExpr boundCNameExpr:
@@ -241,6 +241,11 @@ class Lowerer
             case BoundDefaultExpr boundDefaultExpr:
                 {
                     return new CIrDefault(boundDefaultExpr.TypeSymbol);
+                }
+
+            case DParamExpr dParamExpr:
+                {
+                    return new CIrDParam();
                 }
 
             case ResolvedExpr resolvedExpr:

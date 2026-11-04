@@ -5,6 +5,7 @@ using System.Text;
 
 class Emitter
 {
+    public string DParamName = "_lenkcreserved_dparam_";
     public StringBuilder Ouput { get; } = new();
     public StringBuilder Functions { get; } = new();
     public StringBuilder ForwardDeclares { get; } = new();
@@ -103,17 +104,20 @@ class Emitter
                 {
                     string name = TypeToCType(cIrFunction.Function.ReturnType, GetMangledName(cIrFunction.Name));
 
-                    var parameters = cIrFunction.Function.Parameters
-                        .Select(x =>
-                        {
-                            if (x.IsVariadic)
-                                return "...";
-                            return TypeToCType(x.Type, GetMangledName(x.Name));
-                        });
+                    var fields = cIrFunction.Function.Parameters;
+                    bool addDummy = fields.Any(p => p.IsVariadic) &&
+                        !fields.Any(p => !p.IsVariadic);
+
+                    var parameters = fields.Select(p => p.IsVariadic
+                        ? "..."
+                        : TypeToCType(p.Type, GetMangledName(p.Name))).ToList();
+
+                    if (addDummy)
+                        parameters.Insert(0, $"int {DParamName}");
 
                     var stringParameters = string.Join(", ", parameters);
 
-                    Emit($"{name}({stringParameters});");
+                    Functions.AppendLine($"{name}({stringParameters});");
 
                     var instructions = GetInstructionsUntil<CIrFunctionEnd>();
 
@@ -287,8 +291,10 @@ class Emitter
             case CIrCall cIrCall:
                 {
                     string target = EmitValue(cIrCall.Target);
-                    string arguments = string.Join(", ", cIrCall.Arguments.Select(EmitValue));
-                    return $"{target}({arguments})";
+                    var arguments = cIrCall.Arguments.Select(EmitValue).ToList();
+                    if (cIrCall.AddDummy)
+                        arguments.Insert(0, "0");
+                    return $"{target}({string.Join(", ", arguments)})";
                 }
 
             case CIrConstructer cIrConstructer:
@@ -346,6 +352,11 @@ class Emitter
                     string type = TypeToCType(cIrDefault.TypeSymbol);
                     return $"({type}){{0}}";
                 }
+
+            case CIrDParam cIrDParam:
+                {
+                    return DParamName;
+                }
         }
 
         throw new UnreachableException();
@@ -387,7 +398,11 @@ class Emitter
                 .ToList();
 
             if (functionSymbol.IsVariadic)
+            {
+                if (functionSymbol.ParameterTypes.Count == 0)
+                    parameters.Insert(0, "int");
                 parameters.Add("...");
+            }
 
             string parameterList = string.Join(", ", parameters);
 

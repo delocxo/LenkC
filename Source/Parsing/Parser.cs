@@ -872,6 +872,8 @@ class Parser
 
             return new UnboundDefaultExpr(symbol, token.Position);
         }
+        else if (Match(TokenType.DParam))
+            return new DParamExpr(token.Position);
 
         throw ThrowUnexpected();
     }

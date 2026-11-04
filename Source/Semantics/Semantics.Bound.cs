@@ -76,7 +76,14 @@ partial class Semantics
 
         Scopes.FunctionLevel++;
 
+        bool previousCanUseDParam = s_canUseDParam;
+
+        s_canUseDParam = unboundFunctionStmt.IsVariadic &&
+            unboundFunctionStmt.Parameters.Count(p => !p.IsVariadic) == 0;
+
         newBody.AddRange(semantics.Check(unboundFunctionStmt.Body));
+
+        s_canUseDParam = previousCanUseDParam;
 
         Scopes.FunctionLevel--;
 

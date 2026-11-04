@@ -3,6 +3,7 @@ using System.Diagnostics;
 partial class Semantics
 {
     static int s_vacount = 0;
+    static bool s_canUseDParam = false;
 
     ResolvedExpr CheckExpr(Expr expr)
     {
@@ -329,10 +330,14 @@ partial class Semantics
                                 );
                         }
 
+                        bool addDummy = functionSymbol.IsVariadic && functionSymbol.ParameterTypes.Count == 0;
+
                         return new(new CallExpr(
                             target.Expr,
                             arguments,
-                            callExpr.Position
+                            callExpr.Position,
+                            AddDummy: addDummy
+
                         ), functionSymbol.ReturnType);
                     }
 
@@ -522,6 +527,8 @@ partial class Semantics
                 }
 
             case VacountExpr vacountExpr:
+                if (Scopes.FunctionLevel == 0)
+                    throw new Error("Keyword 'vacount' can only be used in a function", vacountExpr.Position);
                 return new(new IntExpr(s_vacount, vacountExpr.Position), TypeSymbol.Int);
 
             case UnboundDefaultExpr unboundDefaultExpr:
@@ -529,6 +536,13 @@ partial class Semantics
                     var type = ResolveSymbol(unboundDefaultExpr.Symbol);
                     return new(new BoundDefaultExpr(type, unboundDefaultExpr.Position), type);
                 }
+
+            case DParamExpr dParamExpr:
+                if (Scopes.FunctionLevel == 0)
+                    throw new Error("Keyword 'dparam' can only be used in a function", dParamExpr.Position);
+                if (!s_canUseDParam)
+                    throw new Error("Keyword 'dparam' can only be used in a zero-parameter, variadic function", dParamExpr.Position);
+                return new(dParamExpr, TypeSymbol.Int);
         }
 
         throw new UnreachableException($"Invalid expression: {expr.GetType().Name}");

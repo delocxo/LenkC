@@ -22,7 +22,7 @@ record NativeExpr(Expr Expr) : NativePart;
 record BoundNativeExpr(TypeSymbol Symbol, List<NativePart> Parts, Position Position) : Expr(Position);
 record UnboundCastExpr(PSymbol Symbol, Expr Value, Position Position) : Expr(Position);
 record BoundCastExpr(TypeSymbol Symbol, Expr Value, Position Position) : Expr(Position);
-record CallExpr(Expr Target, List<Expr> Arguments, Position Position, StructSymbol? Struct = null) : Expr(Position);
+record CallExpr(Expr Target, List<Expr> Arguments, Position Position, StructSymbol? Struct = null, bool AddDummy = false) : Expr(Position);
 record UnboundCNameExpr(PSymbol Symbol, Position Position) : Expr(Position);
 record BoundCNameExpr(TypeSymbol TypeSymbol, Position Position) : Expr(Position);
 record UnboundFmtExpr(PSymbol Symbol, Position Position) : Expr(Position);
@@ -37,6 +37,7 @@ record BoundInitExpr(StructSymbol Struct, string Member, Expr Value, Position Po
 record VacountExpr(Position Position) : Expr(Position);
 record UnboundDefaultExpr(PSymbol Symbol, Position Position) : Expr(Position);
 record BoundDefaultExpr(TypeSymbol TypeSymbol, Position Position) : Expr(Position);
+record DParamExpr(Position Position) : Expr(Position);
 record ResolvedExpr(Expr Expr, TypeSymbol TypeSymbol) : Expr(Expr.Position);
 
 abstract class Stmt

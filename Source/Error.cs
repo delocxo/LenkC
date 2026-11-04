@@ -31,6 +31,7 @@ class Error : Exception
             Console.Error.WriteLine($"Error: {_position.Value.Line}:{_position.Value.Column}:{_position.Value.Source}: {Message}");
         else
             Console.Error.WriteLine($"Error: {Message}");
+        Console.Error.Write(ToString());
         Environment.Exit(1);
     }
 }
