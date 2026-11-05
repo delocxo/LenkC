@@ -46,7 +46,7 @@ if (args.Length > 1)
         File.WriteAllText(Path.Join(projectPath, "lenkc.json"), jsonTemplate);
 
         string lenkcMainTemplate = """
-        @int main(int argc, string` argv)
+        int main(int argc, string* argv)
         {
             return 0;
         }

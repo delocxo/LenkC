@@ -1,6 +1,7 @@
 ﻿internal enum TokenType
 {
     String, Number, Identifier, Char,
+    HeaderPath,
 
     True, False, Null, End, If, Else,
     While, Break, Continue, Function,
@@ -9,7 +10,7 @@
     GlobalNative, Cast, CName, Fmt,
     Struct, Type, Numeric, TypeIs,
     Union, Extern, Macro, Nameof,
-    Vacount, Default, DParam,
+    Vacount, Default, DParam, Include,
 
     Add, Sub, Mul, Div, Mod,
     IsEqual, NotEqual, Less, Greater,

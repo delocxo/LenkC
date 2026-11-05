@@ -74,6 +74,17 @@ class Parser
             ExpandMacro(macro, position);
             return ParseStmt();
         }
+        if (Check(TokenType.Include))
+        {
+            if (_depth > 0)
+                throw new Error("Includes can only be declared at the top level", Current().Position);
+            IncludeStmt includeStmt = ParseInclude();
+            UnboundNativeExpr unboundNativeExpr = new(
+                new NamePSymbol("void", [], includeStmt.Position),
+                $"#include {(includeStmt.IsSystem ? $"<{includeStmt.Path}>" : $"\"{includeStmt.Path}\"")}",
+                includeStmt.Position);
+            return new ExprStmt(unboundNativeExpr, unboundNativeExpr.Position);
+        }
         return ParseExprStmt();
     }
 
@@ -476,6 +487,28 @@ class Parser
 
         if (register)
             Macros.Add(name, new(name, parameters, body));
+    }
+
+    IncludeStmt ParseInclude()
+    {
+        Position position = PosNext();
+
+        string path = "";
+        bool isSystem = false;
+
+        if (Check(TokenType.HeaderPath))
+        {
+            path = Current().Lexeme;
+            isSystem = true;
+            Next();
+        }
+        else
+        {
+            path = Current().Lexeme;
+            Expect(TokenType.String);
+        }
+
+        return new(path, isSystem, position);
     }
 
     IfBranch ParseBranch()

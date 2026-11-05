@@ -38,7 +38,8 @@ class Lexer
             { "nameof", TokenType.Nameof },
             { "vacount", TokenType.Vacount },
             { "default", TokenType.Default },
-            { "dparam", TokenType.DParam }
+            { "dparam", TokenType.DParam },
+            { "include", TokenType.Include }
         };
 
     static Dictionary<string, TokenType> s_symbols = new Dictionary<string, TokenType>()
@@ -206,7 +207,17 @@ class Lexer
 
             if (char.IsLetter(Char()) || Char() == '_')
             {
-                tokens.Add(LexAlpha());
+                Token alpha = LexAlpha();
+                tokens.Add(alpha);
+                if (alpha.TokenType == TokenType.Include)
+                {
+                    SkipWhiteSpace();
+                    if (NotAtEnd() && Char() == '<')
+                    {
+                        Token token = LexString(false, '>', false);
+                        tokens.Add(token with { TokenType = TokenType.HeaderPath });
+                    }
+                }
                 continue;
             }
 
@@ -246,7 +257,7 @@ class Lexer
         return tokens;
     }
 
-    Token LexString(bool allowEscapes, char target)
+    Token LexString(bool allowEscapes, char target, bool allowNewlines = true)
     {
         Position position = CurrentPos;
 
@@ -256,6 +267,8 @@ class Lexer
 
         while (NotAtEnd() && Char() != target)
         {
+            if (Char() == '\n' && !allowNewlines)
+                throw new Error("Unexpected newline", CurrentPos);
             if (Char() == '\\' && allowEscapes)
             {
                 sb.Append(LexEscape());
@@ -407,5 +420,11 @@ class Lexer
         else
             CurrentPos.Column++;
         _i++;
+    }
+
+    void SkipWhiteSpace()
+    {
+        while (NotAtEnd() && char.IsWhiteSpace(Char()))
+            Next();
     }
 }

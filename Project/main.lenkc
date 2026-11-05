@@ -1,12 +1,7 @@
-// Test
-void variadic(...)
-{
-    int x = dparam;    
-}
+include <stdio.h>
+include "stdarg.h"
 
 int main(int argc, string* argv)
 {
-    void* ptr;
-    variadic();
     return 0;
 }

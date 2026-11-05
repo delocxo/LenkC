@@ -334,3 +334,15 @@ class UnboundExternFunctionStmt : Stmt
     public string CName { get; }
     public string? Parent { get; }
 }
+
+class IncludeStmt : Stmt
+{
+    public IncludeStmt(string path, bool isSystem, Position position) : base(position)
+    {
+        Path = path;
+        IsSystem = isSystem;
+    }
+
+    public string Path { get; }
+    public bool IsSystem { get; }
+}
