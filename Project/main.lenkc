@@ -1,11 +1,12 @@
 // Test
-@void variadic(...)
+void variadic(...)
 {
-    let int x = dparam;    
+    int x = dparam;    
 }
 
-@int main(int argc, string` argv)
+int main(int argc, string* argv)
 {
+    void* ptr;
     variadic();
     return 0;
 }

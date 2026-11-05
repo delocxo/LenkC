@@ -19,6 +19,8 @@ class SourceGenerator
 
         Result.AppendLine(_emitter.ForwardDeclares.ToString());
 
+        Result.AppendLine(_emitter.FunctionPrototypes.ToString());
+
         Result.AppendLine(_emitter.Ouput.ToString());
 
         Result.AppendLine(_emitter.Functions.ToString());

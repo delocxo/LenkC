@@ -7,6 +7,7 @@ record Macro(string Name, List<string> Parameters, List<Token> Body);
 class Parser
 {
     public static Dictionary<string, Macro> Macros { get; } = [];
+    public static HashSet<string> KnownUserTypes { get; } = [];
 
     List<Token> _tokens;
     int _i = 0;
@@ -33,8 +34,8 @@ class Parser
 
     Stmt? ParseStmt()
     {
-        if (Check(TokenType.Let))
-            return ParseLet();
+        if (IsKnownType())
+            return ParseDeclaration();
         if (Check(TokenType.Infer))
             return ParseInfer();
         if (Check(TokenType.If))
@@ -45,8 +46,6 @@ class Parser
             return ParseBreak();
         if (Check(TokenType.Continue))
             return ParseContinue();
-        if (Check(TokenType.At))
-            return ParseFunction();
         if (Check(TokenType.Return))
             return ParseReturn();
         if (Check(TokenType.Struct))
@@ -85,16 +84,19 @@ class Parser
         return new(expr, expr.Position);
     }
 
-    UnboundLetStmt ParseLet()
+    Stmt ParseDeclaration()
     {
-        Position position = PosNext();
-
         var symbol = ParseSymbol();
+
+        if (PeekNotAtEnd() && Peek().TokenType is TokenType.LeftParen
+            or TokenType.Less
+            or TokenType.Period)
+            return ParseFunction(symbol);
 
         string name = ParseName("Expected variable name");
 
         if (Match(TokenType.Semicolon))
-            return new(symbol, name, null, position);
+            return new UnboundLetStmt(symbol, name, null, symbol.Position);
 
         Expect(TokenType.Equal);
 
@@ -102,7 +104,7 @@ class Parser
 
         Expect(TokenType.Semicolon);
 
-        return new(symbol, name, expr, position);
+        return new UnboundLetStmt(symbol, name, expr, symbol.Position);
     }
 
     InferStmt ParseInfer()
@@ -164,12 +166,8 @@ class Parser
         return new(position);
     }
 
-    UnboundFunctionStmt ParseFunction()
+    UnboundFunctionStmt ParseFunction(PSymbol returnSymbol)
     {
-        Position position = PosNext();
-
-        var returnSymbol = ParseSymbol();
-
         string name = ParseName("Expected function or parent name");
         string? parent = null;
 
@@ -201,7 +199,7 @@ class Parser
 
         var body = ParseBody();
 
-        return new(returnSymbol, name, typeParameters, parameters, body, position, parent: parent);
+        return new(returnSymbol, name, typeParameters, parameters, body, returnSymbol.Position, parent: parent);
     }
 
     ReturnStmt ParseReturn()
@@ -396,8 +394,6 @@ class Parser
             Eat("Expected extern C name", TokenType.String);
             Expect(TokenType.RightParen);
         }
-
-        Expect(TokenType.At);
 
         var returnSymbol = ParseSymbol();
 
@@ -679,7 +675,7 @@ class Parser
             symbol = new NamePSymbol(name, typeArguments, position);
         }
 
-        while (Match(TokenType.BackTick))
+        while (Match(TokenType.Mul))
             symbol = new PointerPSymbol(symbol, position);
 
         return symbol;
@@ -949,7 +945,7 @@ class Parser
 
     Expr ParseUnary()
     {
-        if (Check(TokenType.Sub, TokenType.Bang, TokenType.BitwiseNot, TokenType.BitwiseAnd, TokenType.BackTick /* TokenType.At */))
+        if (Check(TokenType.Sub, TokenType.Bang, TokenType.BitwiseNot, TokenType.BitwiseAnd, TokenType.Mul /* TokenType.At */))
         {
             Token op = Current();
 
@@ -1163,7 +1159,7 @@ class Parser
             if (left is NameExpr nameExpr)
                 return new AssignExpr(nameExpr.Name, expr, nameExpr.Position);
 
-            if (left is UnaryExpr unaryExpr && unaryExpr.Op is TokenType.BackTick)
+            if (left is UnaryExpr unaryExpr && unaryExpr.Op is TokenType.Mul)
                 return new PointerAssignExpr(unaryExpr, expr, unaryExpr.Position);
 
             if (left is IndexExpr indexExpr)
@@ -1272,5 +1268,47 @@ class Parser
         }
 
         _i = 0;
+    }
+
+    public void CollectUserTypes()
+    {
+        _i = 0;
+
+        while (NotAtEnd())
+        {
+            switch (Current().TokenType)
+            {
+                case TokenType.Struct:
+                    {
+                        Next();
+                        if (Match(TokenType.Union))
+                            KnownUserTypes.Add(ParseName("Expected union name"));
+                        else
+                            KnownUserTypes.Add(ParseName("Expected struct name"));
+                        break;
+                    }
+                case TokenType.Type:
+                case TokenType.Enum:
+                    {
+                        Next();
+                        KnownUserTypes.Add(ParseName("Expected type name"));
+                        break;
+                    }
+                default:
+                    Next();
+                    break;
+            }
+        }
+
+        _i = 0;
+    }
+
+    bool IsKnownType()
+    {
+        Token token = Current();
+        if (KnownUserTypes.Contains(token.Lexeme) ||
+            TypeRegistery.Registery.ContainsKey(token.Lexeme))
+            return true;
+        return false;
     }
 }

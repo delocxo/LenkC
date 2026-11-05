@@ -9,6 +9,7 @@ class Emitter
     public StringBuilder Ouput { get; } = new();
     public StringBuilder Functions { get; } = new();
     public StringBuilder ForwardDeclares { get; } = new();
+    public StringBuilder FunctionPrototypes { get; } = new();
     public int IndentLevel { get; set; } = 0;
     Lowerer _lowerer;
 
@@ -117,7 +118,7 @@ class Emitter
 
                     var stringParameters = string.Join(", ", parameters);
 
-                    Emit($"{name}({stringParameters});");
+                    FunctionPrototypes.AppendLine($"{name}({stringParameters});");
 
                     var instructions = GetInstructionsUntil<CIrFunctionEnd>();
 
@@ -218,7 +219,7 @@ class Emitter
                         TokenType.Sub => $"-({value})",
                         TokenType.Bang => $"!({value})",
                         TokenType.BitwiseAnd => $"&{value}",
-                        TokenType.BackTick => $"*{value}",
+                        TokenType.Mul => $"*{value}",
                         TokenType.BitwiseNot => $"~({value})",
                         _ => throw new UnreachableException()
                     };

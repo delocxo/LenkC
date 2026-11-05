@@ -76,7 +76,7 @@ class Lexer
             { "|", TokenType.BitwiseOr },
             { "=>", TokenType.Arrow },
             { "@", TokenType.At },
-            { "`", TokenType.BackTick },
+            // { "`", TokenType.BackTick },
             { "...", TokenType.Variadic },
             { "::", TokenType.DoubleColon },
             { "$", TokenType.Dollar },

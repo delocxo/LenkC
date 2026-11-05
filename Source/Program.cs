@@ -117,6 +117,7 @@ try
     combinedTokens.Add(new Token(TokenType.Eof, "End of File", lastPosition));
 
     var parser = new Parser(combinedTokens);
+    parser.CollectUserTypes();
     parser.CollectMacros();
 
     var stmts = parser.Parse();

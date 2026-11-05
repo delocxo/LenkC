@@ -64,7 +64,7 @@ partial class Semantics
                         type = TypeSymbol.Bool;
                     else if (unaryExpr.Op == TokenType.BitwiseAnd)
                         type = new PointerSymbol(type);
-                    else if (unaryExpr.Op == TokenType.BackTick)
+                    else if (unaryExpr.Op == TokenType.Mul)
                     {
                         if (type is PointerSymbol pointer)
                         {
@@ -441,7 +441,7 @@ partial class Semantics
                     if (targetType is PointerSymbol pointer)
                     {
                         targetType = pointer.Inner;
-                        targetExpr = new UnaryExpr(targetExpr, TokenType.BackTick, memberExpr.Position);
+                        targetExpr = new UnaryExpr(targetExpr, TokenType.Mul, memberExpr.Position);
                     }
 
                     if (targetType is StructSymbol structSymbol)
@@ -471,7 +471,7 @@ partial class Semantics
                     if (targetType is PointerSymbol pointer)
                     {
                         targetType = pointer.Inner;
-                        targetExpr = new UnaryExpr(targetExpr, TokenType.BackTick, memberAssignExpr.Position);
+                        targetExpr = new UnaryExpr(targetExpr, TokenType.Mul, memberAssignExpr.Position);
                     }
 
                     if (targetType is StructSymbol structSymbol)

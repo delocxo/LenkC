@@ -19,7 +19,7 @@
 
     Equal, Semicolon, LeftBracket, RightBracket,
     LeftBrace, RightBrace, LeftParen, RightParen,
-    Comma, Period, Hash, Arrow, At, BackTick,
+    Comma, Period, Hash, Arrow, At, /* BackTick */
     Variadic, DoubleColon, TripleQuotes,
     Dollar,
 
