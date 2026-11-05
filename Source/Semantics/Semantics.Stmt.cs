@@ -68,22 +68,45 @@ partial class Semantics
         }
         else if (stmt is IfStmt ifStmt)
         {
+            bool compTime = ifStmt.CompTime;
             List<IfBranch> branches = [];
+
             foreach (var branch in ifStmt.IfBranches)
             {
-                Scopes.BeginScope();
+                if (compTime && branch.Expr is not TypeIsExpr)
+                    throw new Error("Compile time branches conditions can only be typeis for now", ifStmt.Position);
+
                 var expr = CheckExpr(branch.Expr).Expr;
+
+                if (compTime)
+                {
+                    if (expr is not BoolExpr b)
+                        throw new Error("Expected compile-time boolean", branch.Expr.Position);
+
+                    if (!b.Value)
+                        continue;
+                }
+
+                Scopes.BeginScope();
                 var stmts = Check(branch.Stmts);
                 Scopes.EndScope();
+
                 branches.Add(new IfBranch(expr, stmts));
+
+                if (compTime)
+                    break;
             }
 
             List<Stmt>? elseBranch = null;
-            if (ifStmt.ElseBranch != null)
+            if (ifStmt.ElseBranch != null && (!compTime || branches.Count == 0))
             {
                 Scopes.BeginScope();
-                elseBranch = Check(ifStmt.ElseBranch);
+                var elseBranch2 = Check(ifStmt.ElseBranch);
                 Scopes.EndScope();
+                if (compTime && branches.Count == 0)
+                    branches.Add(new(new BoolExpr(true, ifStmt.Position), elseBranch2));
+                else
+                    elseBranch = elseBranch2;
             }
 
             return new IfStmt(branches, elseBranch, ifStmt.Position);

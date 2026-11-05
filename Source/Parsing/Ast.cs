@@ -38,9 +38,11 @@ record VacountExpr(Position Position) : Expr(Position);
 record UnboundDefaultExpr(PSymbol Symbol, Position Position) : Expr(Position);
 record BoundDefaultExpr(TypeSymbol TypeSymbol, Position Position) : Expr(Position);
 record DParamExpr(Position Position) : Expr(Position);
+record UnboundOutExpr(PSymbol Symbol, string Name, Position Position) : Expr(Position);
+record BoundOutExpr(TypeSymbol TypeSymbol, string Name, Position Position) : Expr(Position);
 record ResolvedExpr(Expr Expr, TypeSymbol TypeSymbol) : Expr(Expr.Position);
 
-abstract class Stmt
+class Stmt
 {
     public Stmt(Position position)
     {
@@ -115,14 +117,16 @@ class IfBranch
 
 class IfStmt : Stmt
 {
-    public IfStmt(List<IfBranch> ifBranches, List<Stmt>? elseBranch, Position position) : base(position)
+    public IfStmt(List<IfBranch> ifBranches, List<Stmt>? elseBranch, Position position, bool compTime = false) : base(position)
     {
         IfBranches = ifBranches;
         ElseBranch = elseBranch;
+        CompTime = compTime;
     }
 
     public List<IfBranch> IfBranches { get; }
     public List<Stmt>? ElseBranch { get; set; }
+    public bool CompTime { get; }
 }
 
 class WhileStmt : Stmt

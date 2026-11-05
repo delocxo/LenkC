@@ -34,3 +34,4 @@ record CIrMemberSet(CIrValue Target, string Member, CIrValue Value) : CIrValue;
 record CIrInit(StructSymbol StructSymbol, string Member, CIrValue Value) : CIrValue;
 record CIrDefault(TypeSymbol TypeSymbol) : CIrValue;
 record CIrDParam() : CIrValue;
+record CIrOut(TypeSymbol TypeSymbol, string Name) : CIrValue;

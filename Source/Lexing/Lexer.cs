@@ -39,7 +39,9 @@ class Lexer
             { "vacount", TokenType.Vacount },
             { "default", TokenType.Default },
             { "dparam", TokenType.DParam },
-            { "include", TokenType.Include }
+            { "include", TokenType.Include },
+            { "out", TokenType.Out },
+            { "comptime", TokenType.Comptime }
         };
 
     static Dictionary<string, TokenType> s_symbols = new Dictionary<string, TokenType>()

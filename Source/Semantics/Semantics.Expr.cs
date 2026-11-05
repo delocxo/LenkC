@@ -543,6 +543,19 @@ partial class Semantics
                 if (!s_canUseDParam)
                     throw new Error("Keyword 'dparam' can only be used in a zero-parameter, variadic function", dParamExpr.Position);
                 return new(dParamExpr, TypeSymbol.Int);
+
+            case UnboundOutExpr unboundOutExpr:
+                {
+                    var type = ResolveSymbol(unboundOutExpr.Symbol)
+                        .RejectVoid("Cannot use void as a variable type", unboundOutExpr.Position);
+
+                    Scopes.Declare(unboundOutExpr.Name, type, unboundOutExpr.Position);
+
+                    return new(
+                        new BoundOutExpr(type, unboundOutExpr.Name, unboundOutExpr.Position),
+                        type
+                    );
+                }
         }
 
         throw new UnreachableException($"Invalid expression: {expr.GetType().Name}");

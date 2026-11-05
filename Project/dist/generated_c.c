@@ -4,9 +4,11 @@
 int32_t _lenkc_function_main_va_0__(int32_t _lenkc_argc_, char* *_lenkc_argv_);
 
 #include <stdio.h>
-#include "stdarg.h"
 
 int32_t _lenkc_function_main_va_0__(int32_t _lenkc_argc_, char* *_lenkc_argv_) {
+    if (1) {
+        printf("no\n");
+    }
     return 0;
 }
 

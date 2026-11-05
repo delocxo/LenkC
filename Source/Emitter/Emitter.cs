@@ -358,6 +358,13 @@ class Emitter
                 {
                     return DParamName;
                 }
+
+            case CIrOut cIrOut:
+                {
+                    string name = TypeToCType(cIrOut.TypeSymbol, GetMangledName(cIrOut.Name));
+                    Emit($"{name};");
+                    return GetMangledName(cIrOut.Name);
+                }
         }
 
         throw new UnreachableException();

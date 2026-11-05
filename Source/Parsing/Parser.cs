@@ -39,7 +39,10 @@ class Parser
         if (Check(TokenType.Infer))
             return ParseInfer();
         if (Check(TokenType.If))
-            return ParseIf();
+        {
+            Position position = PosNext();
+            return ParseIf(position);
+        }
         if (Check(TokenType.While))
             return ParseWhile();
         if (Check(TokenType.Break))
@@ -84,6 +87,12 @@ class Parser
                 $"#include {(includeStmt.IsSystem ? $"<{includeStmt.Path}>" : $"\"{includeStmt.Path}\"")}",
                 includeStmt.Position);
             return new ExprStmt(unboundNativeExpr, unboundNativeExpr.Position);
+        }
+        if (Check(TokenType.Comptime))
+        {
+            Position position = PosNext();
+            Expect(TokenType.If);
+            return ParseIf(position, true);
         }
         return ParseExprStmt();
     }
@@ -133,10 +142,8 @@ class Parser
         return new(name, expr, position);
     }
 
-    IfStmt ParseIf()
+    IfStmt ParseIf(Position position, bool compTime = false)
     {
-        Position position = PosNext();
-
         List<IfBranch> branches = [ParseBranch()];
 
         while (Check(TokenType.Else) && PeekNotAtEnd() && Peek().TokenType == TokenType.If)
@@ -151,7 +158,7 @@ class Parser
         if (Match(TokenType.Else))
             elseBranch = ParseBody();
 
-        return new(branches, elseBranch, position);
+        return new(branches, elseBranch, position, compTime);
     }
 
     WhileStmt ParseWhile()
@@ -903,6 +910,12 @@ class Parser
         }
         else if (Match(TokenType.DParam))
             return new DParamExpr(token.Position);
+        else if (Match(TokenType.Out))
+        {
+            var symbol = ParseSymbol();
+            string name = ParseName("Expected out variable name");
+            return new UnboundOutExpr(symbol, name, token.Position);
+        }
 
         throw ThrowUnexpected();
     }

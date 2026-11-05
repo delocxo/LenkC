@@ -248,6 +248,11 @@ class Lowerer
                     return new CIrDParam();
                 }
 
+            case BoundOutExpr boundOutExpr:
+                {
+                    return new CIrOut(boundOutExpr.TypeSymbol, boundOutExpr.Name);
+                }
+
             case ResolvedExpr resolvedExpr:
                 return LowerExpr(resolvedExpr.Expr);
         }

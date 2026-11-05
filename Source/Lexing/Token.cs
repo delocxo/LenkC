@@ -11,6 +11,7 @@
     Struct, Type, Numeric, TypeIs,
     Union, Extern, Macro, Nameof,
     Vacount, Default, DParam, Include,
+    Out, Comptime,
 
     Add, Sub, Mul, Div, Mod,
     IsEqual, NotEqual, Less, Greater,
