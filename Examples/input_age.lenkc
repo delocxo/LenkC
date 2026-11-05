@@ -1,0 +1,17 @@
+include <stdio.h>
+
+extern int printf(string format, ...);
+extern int scanf(string format, ...);
+
+int main()
+{
+    if (scanf("%d", &out int age) == 1)
+    {
+        printf("You are %d years old!\n", age);
+    }
+    else
+    {
+        printf("Please enter a valid age.\n");
+    }
+    return 0;
+}

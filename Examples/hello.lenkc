@@ -1,0 +1,9 @@
+include <stdio.h>
+
+extern int printf(string format, ...);
+
+int main()
+{
+    printf("Hello, World!\n");
+    return 0;
+}

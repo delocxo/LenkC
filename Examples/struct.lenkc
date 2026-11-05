@@ -1,0 +1,24 @@
+struct Person
+{
+    string name;
+    int id;
+}
+
+struct Box<T>
+{
+    T item;
+}
+
+int main()
+{
+    // Regular
+    Person person = Person("Smolenks", 123456);
+    person.name = "Delocxo";
+    person.id = 7891011;
+
+    // Generic
+    Box::<char> box = Box::<char>('S');
+    box.item = 'D';
+    
+    return 0;
+}
