@@ -211,6 +211,7 @@ class UnboundFunctionStmt : Stmt
     public List<Stmt> Body { get; }
     public bool IsVariadic { get; set; }
     public string? Parent { get; }
+    public int OverloadIndex { get; set; } = 0;
 }
 
 class BoundFunctionStmt : Stmt

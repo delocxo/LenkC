@@ -991,7 +991,19 @@ class Parser
 
     Expr ParseUnary()
     {
-        if (Check(TokenType.Sub, TokenType.Bang, TokenType.BitwiseNot, TokenType.BitwiseAnd, TokenType.Mul /* TokenType.At */))
+        if (Check(TokenType.LeftParen) &&
+            PeekNotAtEnd() &&
+            IsKnownType(Peek().Lexeme))
+        {
+            Token op = Current();
+            Next();
+            var symbol = ParseSymbol();
+            Expect(TokenType.RightParen);
+            Expr target = ParseUnary();
+            return new UnboundCastExpr(symbol, target, op.Position);
+        }
+
+        if (Check(TokenType.Sub, TokenType.Bang, TokenType.BitwiseNot, TokenType.BitwiseAnd, TokenType.Mul/* TokenType.At */))
         {
             Token op = Current();
 
@@ -1356,8 +1368,13 @@ class Parser
     bool IsKnownType()
     {
         Token token = Current();
-        if (KnownUserTypes.Contains(token.Lexeme) ||
-            TypeRegistery.Registery.ContainsKey(token.Lexeme))
+        return IsKnownType(token.Lexeme);
+    }
+
+    bool IsKnownType(string name)
+    {
+        if (KnownUserTypes.Contains(name) ||
+            TypeRegistery.Registery.ContainsKey(name))
             return true;
         return false;
     }

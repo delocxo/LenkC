@@ -127,7 +127,7 @@ try
     var mainInfo = semantics.CheckMain();
 
     var lowerer = new Lowerer();
-    lowerer.LowererStmts(checkedStmts);
+    lowerer.LowerProgram(checkedStmts);
 
     var emitter = new Emitter(lowerer);
     emitter.EmitInstructions();

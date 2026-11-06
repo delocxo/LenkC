@@ -1,6 +1,68 @@
-int main(int argc, string* argv)
+// Each overload is better for a different argument.
+int crossed(int a, long b) { return 1; }
+int crossed(long a, int b) { return 2; }
+
+// Both accept the literal through conversion.
+int narrow(byte value)  { return 1; }
+int narrow(short value) { return 2; }
+
+// Both match the fixed argument exactly.
+// Your current rules have no non-variadic preference.
+int fixedTie(int value)      { return 1; }
+int fixedTie(int value, ...) { return 2; }
+
+// Both accept every extra argument through ...
+int variadicTie(int first, long second, ...)
 {
-    int x = 0;
-    x += 10;
+    return 1;
+}
+
+int variadicTie(long first, int second, ...)
+{
+    return 2;
+}
+
+// Generic substitution produces equally good signatures.
+int genericTie<T>(T first, int second)
+{
+    return 1;
+}
+
+int genericTie<T>(int first, T second)
+{
+    return 2;
+}
+
+// Neither candidate is consistently better across three arguments.
+int threeWay(int a, long b, int c)
+{
+    return 1;
+}
+
+int threeWay(long a, int b, long c)
+{
+    return 2;
+}
+
+int main()
+{
+    // 1: ranks [0, 1] versus [1, 0].
+    crossed(10, cast(long, 10));
+
+    // 2: ranks [1] versus [1].
+    narrow(cast(short, 10));
+
+    // 3: ranks [0] versus [0].
+    fixedTie(10, 100);
+
+    // 4: ranks [0, 1, 2] versus [1, 0, 2].
+    variadicTie(cast(long, 10), 20, "extra");
+
+    // 5: T becomes int, giving both candidates [0, 0].
+    genericTie::<string>(10, "");
+
+    // 6: ranks [0, 1, 0] versus [1, 0, 1].
+    threeWay(10, (long)20, 30);
+
     return 0;
 }

@@ -4,6 +4,19 @@ class Lowerer
 {
     public List<CIrInstruction> Instructions { get; } = [];
 
+    public void LowerProgram(List<Stmt> stmts)
+    {
+        Semantics.BoundFunctions
+       .ToList()
+       .ForEach(x =>
+       {
+           Instructions.Add(new CIrFunction(x.Value.Function, x.Key));
+           LowererStmts(x.Value.Function.Body);
+           Instructions.Add(new CIrFunctionEnd());
+       });
+        LowererStmts(stmts);
+    }
+
     public void LowererStmts(List<Stmt> stmts)
     {
         foreach (Stmt stmt in stmts)
@@ -71,21 +84,6 @@ class Lowerer
             case ContinueStmt:
                 Instructions.Add(new CIrContinue());
                 return;
-
-            case UnboundFunctionStmt unboundFunctionStmt:
-                {
-                    Semantics.BoundFunctions
-                        .Where(x => x.Value.Function.Name == unboundFunctionStmt.Name &&
-                            x.Value.Function.Parent == unboundFunctionStmt.Parent)
-                        .ToList()
-                        .ForEach(x =>
-                        {
-                            Instructions.Add(new CIrFunction(x.Value.Function, x.Key));
-                            LowererStmts(x.Value.Function.Body);
-                            Instructions.Add(new CIrFunctionEnd());
-                        });
-                    return;
-                }
 
             case ReturnStmt returnStmt:
                 {

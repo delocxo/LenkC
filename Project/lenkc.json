@@ -1,7 +1,7 @@
 {
     "sources": [],
     "buildOptions": {
-        "compiler": "your-compiler",
+        "compiler": "gcc",
         "compilerArgs": [],
         "outputPath": "dist",
         "outputExe": "Project.exe",

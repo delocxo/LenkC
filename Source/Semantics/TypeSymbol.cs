@@ -55,7 +55,8 @@ record TypeSymbol(string Name, string CName, string? FormatSymbol)
                 fl.ParameterTypes
                     .Zip(fr.ParameterTypes)
                     .All(pair => pair.First.TypeCheck(pair.Second))
-                && fl.ReturnType.TypeCheck(fr.ReturnType);
+                && fl.ReturnType.TypeCheck(fr.ReturnType)
+                && fl.IsVariadic == fr.IsVariadic;
 
         if (this is StructSymbol sl && other is StructSymbol sr)
             return ReferenceEquals(sl, sr);

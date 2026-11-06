@@ -33,9 +33,11 @@ partial class Semantics
                             .Select(x => ResolveSymbol(x).RejectVoid("Type argument cannot be void", x.Position))
                             .ToList();
 
-                    if (s_functions.TryGetValue((null, nameExpr.Name), out var function))
+                    if (s_functions.TryGetValue((null, nameExpr.Name), out var set))
                     {
-                        var bound = BoundFunction(function, typeArguments, nameExpr.Position);
+                        if (set.Count > 1)
+                            throw new Error($"Function '{nameExpr.Name}' is overloaded, thus cannot be stored", nameExpr.Position);
+                        var bound = BoundFunction(set[0], typeArguments, nameExpr.Position);
                         return new(nameExpr with { Name = bound.Name }, bound.Symbol);
                     }
 
@@ -189,6 +191,10 @@ partial class Semantics
 
             case CallExpr callExpr:
                 {
+                    var arguments = callExpr.Arguments
+                            .Select(CheckExpr)
+                            .ToList();
+
                     ResolvedExpr? resolvedExpr = null;
                     if (callExpr.Target is NameExpr nameExpr)
                     {
@@ -219,9 +225,17 @@ partial class Semantics
                             );
                         }
 
-                        if (s_functions.TryGetValue((null, nameExpr.Name), out var function))
+                        if (s_functions.TryGetValue((null, nameExpr.Name), out var set))
                         {
                             int previousVaCount = s_vacount;
+
+                            var function = ResolveOverload(
+                                    null,
+                                    nameExpr.Name,
+                                    typeArguments,
+                                    arguments,
+                                    nameExpr.Position
+                                );
 
                             s_vacount = function.IsVariadic
                                 ? callExpr.Arguments.Count - function.Parameters.Count(p => !p.IsVariadic)
@@ -245,17 +259,25 @@ partial class Semantics
                             if (nameExpr1.TypeArguments.Count > 0)
                                 throw new Error("Member target cannot have type parameters in this context", nameExpr1.Position);
 
-                            if (s_functions.TryGetValue((nameExpr1.Name, memberExpr.Member.Name), out var function))
+                            if (s_functions.TryGetValue((nameExpr1.Name, memberExpr.Member.Name), out var set))
                             {
                                 int previousVaCount = s_vacount;
-
-                                s_vacount = function.IsVariadic
-                                    ? callExpr.Arguments.Count - function.Parameters.Count(p => !p.IsVariadic)
-                                    : 0;
 
                                 var typeArguments = memberExpr.Member.TypeArguments
                                     .Select(x => ResolveSymbol(x).RejectVoid("Type argument cannot be void", x.Position))
                                     .ToList();
+
+                                var function = ResolveOverload(
+                                    nameExpr1.Name,
+                                    memberExpr.Member.Name,
+                                    typeArguments,
+                                    arguments,
+                                    nameExpr1.Position
+                                );
+
+                                s_vacount = function.IsVariadic
+                                    ? callExpr.Arguments.Count - function.Parameters.Count(p => !p.IsVariadic)
+                                    : 0;
 
                                 var bound = BoundFunction(function, typeArguments, nameExpr1.Position, nameExpr1.Name);
 
@@ -270,9 +292,6 @@ partial class Semantics
                     }
 
                     var target = resolvedExpr ?? CheckExpr(callExpr.Target);
-                    var arguments = callExpr.Arguments
-                        .Select(x => CheckExpr(x).Expr)
-                        .ToList();
 
                     if (target.TypeSymbol is FunctionSymbol functionSymbol)
                     {
@@ -297,7 +316,9 @@ partial class Semantics
 
                         return new(new CallExpr(
                             target.Expr,
-                            arguments,
+                            arguments
+                            .Select(x => x.Expr)
+                            .ToList(),
                             callExpr.Position,
                             AddDummy: addDummy
 
@@ -387,12 +408,14 @@ partial class Semantics
                             return new(new IntExpr(value, memberExpr.Member.Position), enumSymbol.Type);
                         }
 
-                        if (s_functions.TryGetValue((nameExpr.Name, memberExpr.Member.Name), out var function))
+                        if (s_functions.TryGetValue((nameExpr.Name, memberExpr.Member.Name), out var set))
                         {
+                            if (set.Count > 1)
+                                throw new Error($"Function '{memberExpr.Member.Name}' is overloaded, thus cannot be stored", memberExpr.Member.Position);
                             var typeArguments = memberExpr.Member.TypeArguments
                                 .Select(x => ResolveSymbol(x).RejectVoid("Type argument cannot be void", x.Position))
                                 .ToList();
-                            var bound = BoundFunction(function, typeArguments, nameExpr.Position, nameExpr.Name);
+                            var bound = BoundFunction(set[0], typeArguments, nameExpr.Position, nameExpr.Name);
                             return new(memberExpr.Member with { Name = bound.Name }, bound.Symbol);
                         }
 
@@ -625,5 +648,146 @@ partial class Semantics
         );
 
         return ((BinaryExpr)CheckExpr(binary).Expr).Right;
+    }
+
+    UnboundFunctionStmt ResolveOverload(string? parent, string name, List<TypeSymbol> typeArguments, List<ResolvedExpr> arguments, Position position)
+    {
+        if (!s_functions.TryGetValue((parent, name), out var set))
+            throw new Error("No matching overloads were found", position);
+
+        List<UnboundFunctionStmt> candidates = [];
+
+        foreach (var overload in set)
+        {
+            if (overload.TypeParameters.Count != typeArguments.Count)
+                continue;
+
+            int fixedCount = overload.Parameters
+                .Where(x => !x.IsVariadic)
+                .ToList().Count;
+
+            if (overload.IsVariadic)
+            {
+                if (arguments.Count < fixedCount)
+                    continue;
+            }
+            else
+            {
+                if (arguments.Count != fixedCount)
+                    continue;
+            }
+
+            candidates.Add(overload);
+        }
+
+        if (candidates.Count == 0)
+            throw new Error("No matching overloads were found", position);
+
+        List<(UnboundFunctionStmt Function, List<int> Ranks)> matchs = [];
+
+        foreach (var candidate in candidates)
+        {
+            Dictionary<string, TypeSymbol?> prevTypes = [];
+            List<TypeSymbol> parameterTypes = [];
+
+            for (int i = 0; i < candidate.TypeParameters.Count; i++)
+            {
+                string param = candidate.TypeParameters[i];
+
+                TypeRegistery.Registery.TryGetValue(param, out var prev);
+                prevTypes[param] = prev;
+                TypeRegistery.Registery[param] = typeArguments[i];
+            }
+
+            parameterTypes = candidate.Parameters
+                .Where(x => !x.IsVariadic)
+                .Select(p => ResolveSymbol(p.Symbol))
+                .ToList();
+
+            foreach (var pair in prevTypes)
+            {
+                if (pair.Value == null)
+                    TypeRegistery.Registery.Remove(pair.Key);
+                else
+                    TypeRegistery.Registery[pair.Key] = pair.Value;
+            }
+
+            List<int> ranks = [];
+            bool matchesParameters = true;
+
+            for (int i = 0; i < parameterTypes.Count; i++)
+            {
+                var paramType = parameterTypes[i];
+                var arg = arguments[i];
+                var argType = arg.TypeSymbol;
+
+                bool exact = paramType.TypeCheck(argType) && argType.TypeCheck(paramType);
+
+                if (exact)
+                    ranks.Add(0);
+                else if (arg.Expr is IntExpr literal &&
+                    paramType is NumericSymbol numeric &&
+                    !numeric.IsFloat &&
+                    FitsInteger(literal.Value, numeric))
+                {
+                    ranks.Add(1);
+                }
+                else if (paramType.TypeCheck(argType))
+                {
+                    ranks.Add(1);
+                }
+                else
+                {
+                    matchesParameters = false;
+                    break;
+                }
+            }
+
+            while (ranks.Count < arguments.Count)
+                ranks.Add(2);
+
+            if (matchesParameters)
+                matchs.Add((candidate, ranks));
+        }
+
+        if (matchs.Count == 0)
+            throw new Error("No matching overloads were found", position);
+
+        if (matchs.Count == 1)
+            return matchs[0].Function;
+
+        foreach (var match in matchs)
+        {
+            bool beatsEveryone = true;
+
+            foreach (var other in matchs)
+            {
+                if (match == other)
+                    continue;
+
+                bool hasBetterArg = false;
+                bool hasWorseArg = false;
+
+                for (int i = 0; i < arguments.Count; i++)
+                {
+                    if (match.Ranks[i] < other.Ranks[i])
+                        hasBetterArg = true;
+
+                    if (match.Ranks[i] > other.Ranks[i])
+                        hasWorseArg = true;
+                }
+
+                if (hasWorseArg || !hasBetterArg)
+                {
+                    beatsEveryone = false;
+                    break;
+                }
+            }
+
+            if (beatsEveryone)
+                return match.Function;
+        }
+
+        throw new Error("Ambiguous overload", position);
     }
 }

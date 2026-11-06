@@ -5,7 +5,7 @@ partial class Semantics
         if (typeArguments.Count != unboundFunctionStmt.TypeParameters.Count)
             throw new Error($"'{unboundFunctionStmt.Name}' expects {unboundFunctionStmt.TypeParameters.Count} argument(s), got {typeArguments.Count}", unboundFunctionStmt.Position);
 
-        string key = $"function_{unboundFunctionStmt.Name}_va_{s_vacount}_" + string.Join("_", typeArguments.Select(TypeKey));
+        string key = $"function_overload_{unboundFunctionStmt.OverloadIndex}_{unboundFunctionStmt.Name}_va_{s_vacount}_" + string.Join("_", typeArguments.Select(TypeKey));
 
         if (parent != null)
             key = $"{parent}_{key}";

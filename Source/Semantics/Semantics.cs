@@ -7,7 +7,7 @@ partial class Semantics
 {
     public static Dictionary<string, (BoundFunctionStmt Function, FunctionSymbol Type)> BoundFunctions { get; } = [];
     public static Dictionary<string, StructSymbol> BoundStructs { get; } = [];
-    static Dictionary<(string? Parent, string Name), UnboundFunctionStmt> s_functions = [];
+    static Dictionary<(string? Parent, string Name), List<UnboundFunctionStmt>> s_functions = [];
     static Dictionary<string, UnboundStructStmt> s_structs = [];
     static Dictionary<string, EnumSymbol> s_enums = [];
     static Dictionary<(string? Parent, string Name), ExternFunction> s_externFunctions = [];
@@ -21,9 +21,6 @@ partial class Semantics
         foreach (Stmt stmt in stmts)
             if (stmt is UnboundFunctionStmt unboundFunction)
             {
-                if (!s_functions.TryAdd((unboundFunction.Parent, unboundFunction.Name), unboundFunction))
-                    throw new Error($"'{unboundFunction.Name}' is an already existing function", unboundFunction.Position);
-
                 if (s_externFunctions.ContainsKey((unboundFunction.Parent, unboundFunction.Name)))
                     throw new Error($"'{unboundFunction.Name}' is an already existing extern function", unboundFunction.Position);
 
@@ -33,6 +30,23 @@ partial class Semantics
                         throw new Error($"'{parameter}' is a duplicate function type parameter", unboundFunction.Position);
 
                 unboundFunction.IsVariadic = CheckParametersAndIsVariadac(unboundFunction.Parameters, unboundFunction.Position);
+
+                if (CheckForDuplicateFunction(unboundFunction))
+                    throw new Error("Duplicate function overload", unboundFunction.Position);
+
+                var key = (unboundFunction.Parent, unboundFunction.Name);
+
+                if (s_functions.TryGetValue(key, out var set))
+                {
+                    set.Add(unboundFunction);
+                    unboundFunction.OverloadIndex = set.Count;
+                }
+                else
+                {
+                    List<UnboundFunctionStmt> newSet = [unboundFunction];
+                    s_functions[key] = newSet;
+                    unboundFunction.OverloadIndex = newSet.Count;
+                }
             }
             else if (stmt is UnboundStructStmt structStmt)
             {
@@ -147,8 +161,13 @@ partial class Semantics
 
     public (string, int) CheckMain()
     {
-        if (!s_functions.TryGetValue((null, "main"), out var mainfunction))
+        if (!s_functions.TryGetValue((null, "main"), out var mainfunctionPack))
             throw new Error("Program must declare a main function", null);
+
+        if (mainfunctionPack.Count > 1)
+            throw new Error("Main function cannont be overloaded", null);
+
+        var mainfunction = mainfunctionPack[0];
 
         if (mainfunction.TypeParameters.Count > 0)
             throw new Error("Main cannot be generic", mainfunction.Position);
@@ -268,5 +287,40 @@ partial class Semantics
             throw new Error($"Variadic parameter must be the last parameter of a function", position);
 
         return isVariadic;
+    }
+
+    bool CheckForDuplicateFunction(UnboundFunctionStmt function)
+    {
+        if (!s_functions.TryGetValue((function.Parent, function.Name), out var set))
+            return false;
+
+        foreach (var overload in set)
+        {
+            if (function.TypeParameters.Count != overload.TypeParameters.Count)
+                continue;
+
+            if (function.IsVariadic != overload.IsVariadic)
+                continue;
+
+            var functionParams = function.Parameters
+                    .Where(x => !x.IsVariadic)
+                    .ToList();
+
+            var overloadParams = overload.Parameters
+                    .Where(x => !x.IsVariadic)
+                    .ToList();
+
+            if (functionParams.Count != overloadParams.Count)
+                continue;
+
+            var match = functionParams
+                .Zip(overloadParams)
+                .All(x => x.First.Symbol.TypeCheck(x.Second.Symbol));
+
+            if (match)
+                return true;
+        }
+
+        return false;
     }
 }
