@@ -1198,24 +1198,28 @@ class Parser
     {
         Expr left = ParseOr();
 
-        if (Match(TokenType.Equal))
+        if (Lexer.TryGetCompoundValue(Current().TokenType, out _) || Check(TokenType.Equal))
         {
+            TokenType assignmentOperator = Current().TokenType;
+
+            Next();
+
             Expr expr = ParseAssign();
 
             if (left is NameExpr nameExpr)
-                return new AssignExpr(nameExpr.Name, expr, nameExpr.Position);
+                return new AssignExpr(nameExpr.Name, assignmentOperator, expr, nameExpr.Position);
 
             if (left is UnaryExpr unaryExpr && unaryExpr.Op is TokenType.Mul)
-                return new PointerAssignExpr(unaryExpr, expr, unaryExpr.Position);
+                return new PointerAssignExpr(unaryExpr, assignmentOperator, expr, unaryExpr.Position);
 
             if (left is IndexExpr indexExpr)
-                return new IndexAssignExpr(indexExpr, expr);
+                return new IndexAssignExpr(indexExpr, assignmentOperator, expr);
 
             if (left is MemberExpr memberExpr)
             {
                 if (memberExpr.Member.TypeArguments.Count > 0)
                     throw new Error($"Member assignment takes 0 type arguments", memberExpr.Position);
-                return new MemberAssignExpr(memberExpr.Target, memberExpr.Member.Name, expr, memberExpr.Position);
+                return new MemberAssignExpr(memberExpr.Target, assignmentOperator, memberExpr.Member.Name, expr, memberExpr.Position);
             }
 
             throw new Error("Invalid assign target", left.Position);

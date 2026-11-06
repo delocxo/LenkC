@@ -85,6 +85,35 @@ class Lexer
             { "$", TokenType.Dollar },
         };
 
+    public static Dictionary<string, TokenType> CompoundOperators = new()
+    {
+        { "+=", TokenType.AddAssign },
+        { "-=", TokenType.SubAssign },
+        { "*=", TokenType.MulAssign },
+        { "/=", TokenType.DivAssign },
+        { "%=", TokenType.ModAssign },
+        { "&=", TokenType.BitwiseAndAssign },
+        { "|=", TokenType.BitwiseOrAssign },
+        { "^=", TokenType.BitwiseXorAssign },
+        { "<<=", TokenType.BitwiseLeftShiftAssign },
+        { ">>=", TokenType.BitwiseRightShiftAssign },
+    };
+
+    public static Dictionary<TokenType, TokenType> CompoundToBinary = new()
+    {
+        { TokenType.AddAssign, TokenType.Add },
+        { TokenType.SubAssign, TokenType.Sub },
+        { TokenType.MulAssign, TokenType.Mul },
+        { TokenType.DivAssign, TokenType.Div },
+        { TokenType.ModAssign, TokenType.Mod },
+        { TokenType.BitwiseAndAssign, TokenType.BitwiseAnd },
+        { TokenType.BitwiseOrAssign, TokenType.BitwiseOr },
+        { TokenType.BitwiseXorAssign, TokenType.BitwiseXor },
+        { TokenType.BitwiseLeftShiftAssign, TokenType.BitwiseLeftShift },
+        { TokenType.BitwiseRightShiftAssign, TokenType.BitwiseRightShift },
+        { TokenType.Equal, TokenType.Equal }
+    };
+
     public static string? GetKeywordFromType(TokenType type)
     {
         KeyValuePair<string, TokenType>? value = s_keywords.FirstOrDefault(x => x.Value == type);
@@ -96,9 +125,32 @@ class Lexer
     public static string? GetSymbolFromType(TokenType type)
     {
         KeyValuePair<string, TokenType>? value = s_symbols.FirstOrDefault(x => x.Value == type);
-        if (value == null)
-            return null;
-        return value.Value.Key;
+        if (value != null)
+            return value.Value.Key;
+        KeyValuePair<string, TokenType>? compound = CompoundOperators.FirstOrDefault(x => x.Value == type);
+        if (compound != null)
+            return compound.Value.Key;
+        return null;
+    }
+
+    public static string GetCompoundValue(TokenType type)
+    {
+        KeyValuePair<string, TokenType> compound = CompoundOperators.FirstOrDefault(x => x.Value == type);
+        return compound.Key;
+    }
+
+    public static bool TryGetCompoundValue(TokenType type, out string value)
+    {
+        foreach (var pair in CompoundOperators)
+        {
+            if (pair.Value == type)
+            {
+                value = pair.Key;
+                return true;
+            }
+        }
+        value = "";
+        return false;
     }
 
     public Lexer(string code, string source)
@@ -166,6 +218,15 @@ class Lexer
                     Next();
                     continue;
                 }
+
+                else if (CompoundOperators.TryGetValue(tripleChar, out TokenType compound))
+                {
+                    tokens.Add(new Token(compound, tripleChar, CurrentPos));
+                    Next();
+                    Next();
+                    Next();
+                    continue;
+                }
             }
 
             if (NotAtEnd(1))
@@ -182,6 +243,13 @@ class Lexer
                 if (s_symbols.TryGetValue(doubleChar, out TokenType value))
                 {
                     tokens.Add(new Token(value, doubleChar, CurrentPos));
+                    Next();
+                    Next();
+                    continue;
+                }
+                else if (CompoundOperators.TryGetValue(doubleChar, out TokenType compound))
+                {
+                    tokens.Add(new Token(compound, doubleChar, CurrentPos));
                     Next();
                     Next();
                     continue;

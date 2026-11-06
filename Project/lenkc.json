@@ -1,0 +1,12 @@
+{
+    "sources": [],
+    "buildOptions": {
+        "compiler": "your-compiler",
+        "compilerArgs": [],
+        "outputPath": "dist",
+        "outputExe": "Project.exe",
+        "keepGeneratedC": true,
+        "runArgs": [],
+        "runAfterCompile": true
+    }
+}

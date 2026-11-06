@@ -147,14 +147,14 @@ class Lowerer
             case AssignExpr assignExpr:
                 {
                     var value = LowerExpr(assignExpr.Value);
-                    return new CIrAssign(assignExpr.Name, value);
+                    return new CIrAssign(assignExpr.Name, value, assignExpr.AssignOperator);
                 }
 
             case PointerAssignExpr pointerAssign:
                 {
                     var target = LowerExpr(pointerAssign.Target);
                     var value = LowerExpr(pointerAssign.Expr);
-                    return new CIrPointerAssign(target, value);
+                    return new CIrPointerAssign(target, value, pointerAssign.AssignOperator);
                 }
 
             case BoundNativeExpr boundNativeExpr:
@@ -211,7 +211,8 @@ class Lowerer
                     return new CIrIndexSet(
                         LowerExpr(indexAssignExpr.IndexExpr.Target),
                         LowerExpr(indexAssignExpr.IndexExpr.Index),
-                        LowerExpr(indexAssignExpr.Value)
+                        LowerExpr(indexAssignExpr.Value),
+                        indexAssignExpr.AssignOperator
                     );
                 }
 
@@ -225,7 +226,8 @@ class Lowerer
                     return new CIrMemberSet(
                         LowerExpr(memberAssignExpr.Target),
                         memberAssignExpr.Member,
-                        LowerExpr(memberAssignExpr.Value)
+                        LowerExpr(memberAssignExpr.Value),
+                        memberAssignExpr.AssignOperator
                     );
                 }
 

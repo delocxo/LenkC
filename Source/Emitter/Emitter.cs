@@ -257,14 +257,16 @@ class Emitter
             case CIrAssign cIrAssign:
                 {
                     var value = EmitValue(cIrAssign.Value);
-                    return $"{GetMangledName(cIrAssign.Name)} = {value}";
+                    string op = Lexer.GetCompoundValue(cIrAssign.AssignOp);
+                    return $"{GetMangledName(cIrAssign.Name)} {op} {value}";
                 }
 
             case CIrPointerAssign cIrPointerAssign:
                 {
                     var target = EmitValue(cIrPointerAssign.Target);
                     var value = EmitValue(cIrPointerAssign.Value);
-                    return $"{target} = {value}";
+                    string op = Lexer.GetCompoundValue(cIrPointerAssign.AssignOp);
+                    return $"{target} {op} {value}";
                 }
 
             case CIrNative cIrNative:
@@ -326,7 +328,8 @@ class Emitter
                     string target = EmitValue(cIrIndexSet.Target);
                     string index = EmitValue(cIrIndexSet.Index);
                     string value = EmitValue(cIrIndexSet.Value);
-                    return $"{target}[{index}] = {value}";
+                    string op = Lexer.GetCompoundValue(cIrIndexSet.AssignOp);
+                    return $"{target}[{index}] {op} {value}";
                 }
 
             case CIrMember cIrMember:
@@ -339,7 +342,8 @@ class Emitter
                 {
                     string target = EmitValue(cIrMemberSet.Target);
                     string value = EmitValue(cIrMemberSet.Value);
-                    return $"({target}).{cIrMemberSet.Member} = {value}";
+                    string op = Lexer.GetCompoundValue(cIrMemberSet.AssignOp);
+                    return $"({target}).{cIrMemberSet.Member} {op} {value}";
                 }
 
             case CIrInit cIrInit:

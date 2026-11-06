@@ -23,7 +23,12 @@
     LeftBrace, RightBrace, LeftParen, RightParen,
     Comma, Period, Hash, Arrow, At, /* BackTick */
     Variadic, DoubleColon, TripleQuotes,
-    Dollar,
+    Dollar, Increment, Decrement,
+
+    AddAssign, SubAssign, MulAssign, DivAssign,
+    ModAssign, BitwiseAndAssign, BitwiseOrAssign,
+    BitwiseXorAssign, BitwiseLeftShiftAssign,
+    BitwiseRightShiftAssign,
 
     Eof,
 }

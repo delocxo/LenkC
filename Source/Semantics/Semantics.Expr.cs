@@ -93,84 +93,47 @@ partial class Semantics
 
             case BinaryExpr binaryExpr:
                 {
-                    var left = CheckExpr(binaryExpr.Left);
-                    var right = CheckExpr(binaryExpr.Right);
-
-                    if (left.TypeSymbol == TypeSymbol.Char || left.TypeSymbol == TypeSymbol.Bool)
-                        left = left with { TypeSymbol = TypeSymbol.Int };
-
-                    if (right.TypeSymbol == TypeSymbol.Char || right.TypeSymbol == TypeSymbol.Bool)
-                        right = right with { TypeSymbol = TypeSymbol.Int };
-
-                    var newExpr = binaryExpr with
-                    {
-                        Left = left.Expr,
-                        Right = right.Expr
-                    };
-
-                    if (binaryExpr.Op is
-                        TokenType.And or TokenType.Or or
-                        TokenType.IsEqual or TokenType.NotEqual or
-                        TokenType.Less or TokenType.Greater or
-                        TokenType.LessEq or TokenType.GreaterEq)
-                    {
-                        return new(newExpr, TypeSymbol.Bool);
-                    }
-
-                    if (left.TypeSymbol is PointerSymbol pointer &&
-                        right.TypeSymbol is NumericSymbol number &&
-                        !number.IsFloat &&
-                        binaryExpr.Op is TokenType.Add or TokenType.Sub)
-                    {
-                        return new(newExpr, pointer);
-                    }
-
-                    if (right.TypeSymbol is PointerSymbol pointerRight &&
-                        left.TypeSymbol is NumericSymbol numberLeft &&
-                        !numberLeft.IsFloat &&
-                        binaryExpr.Op == TokenType.Add)
-                    {
-                        return new(newExpr, pointerRight);
-                    }
-
-                    if (left.TypeSymbol is PointerSymbol &&
-                        right.TypeSymbol is PointerSymbol &&
-                        binaryExpr.Op == TokenType.Sub)
-                    {
-                        return new(newExpr, TypeSymbol.Long);
-                    }
-
-                    if (left.TypeSymbol is NumericSymbol l && right.TypeSymbol is NumericSymbol r)
-                    {
-                        if (binaryExpr.Op is TokenType.BitwiseLeftShift or TokenType.BitwiseRightShift)
-                        {
-                            if (!l.IsFloat && l.Bits < 32)
-                                l = TypeSymbol.Int;
-                            return new ResolvedExpr(newExpr, l);
-                        }
-                        return new(newExpr, PromoteArithmetic(l, r));
-                    }
-
-                    throw new Error("Binary error", expr.Position);
+                    return CheckBinaryExpr(binaryExpr);
                 }
 
             case AssignExpr assignExpr:
                 {
-                    Scopes.Resolve(assignExpr.Name, assignExpr.Position);
-                    var resolved = CheckExpr(assignExpr.Value);
-                    var newExpr = new AssignExpr(assignExpr.Name, resolved.Expr, assignExpr.Position);
-                    return new(newExpr, resolved.TypeSymbol);
+                    var target = Scopes.Resolve(assignExpr.Name, assignExpr.Position);
+
+                    var value = CheckAssignment(
+                        new NameExpr(assignExpr.Name, [], assignExpr.Position),
+                        assignExpr.Value,
+                        assignExpr.AssignOperator,
+                        assignExpr.Position
+                    );
+
+                    var newExpr = new AssignExpr(
+                        assignExpr.Name,
+                        assignExpr.AssignOperator,
+                        value,
+                        assignExpr.Position
+                    );
+
+                    return new(newExpr, target.TypeSymbol);
                 }
 
             case PointerAssignExpr pointerAssignExpr:
                 {
                     var resolved = CheckExpr(pointerAssignExpr.Target);
-                    var value = CheckExpr(pointerAssignExpr.Expr);
+
+                    var value = CheckAssignment(
+                        resolved.Expr,
+                        resolved.Expr,
+                        pointerAssignExpr.AssignOperator,
+                        pointerAssignExpr.Position
+                    );
+
                     var newExpr = pointerAssignExpr with
                     {
                         Target = (UnaryExpr)resolved.Expr,
-                        Expr = value.Expr
+                        Expr = value
                     };
+
                     return new(newExpr, resolved.TypeSymbol);
                 }
 
@@ -379,7 +342,6 @@ partial class Semantics
                     var indexExpr = indexAssignExpr.IndexExpr;
                     var target = CheckExpr(indexExpr.Target);
                     var index = CheckExpr(indexExpr.Index);
-                    var value = CheckExpr(indexAssignExpr.Value);
 
                     if (target.TypeSymbol is not PointerSymbol pointer)
                         throw new Error("Cannot index a non-pointer", indexExpr.Position);
@@ -387,14 +349,24 @@ partial class Semantics
                     if (pointer.Inner is VoidSymbol)
                         throw new Error("Cannot index a void pointer", indexExpr.Position);
 
+                    IndexExpr newIndexExpr = new(
+                        target.Expr,
+                        index.Expr,
+                        indexExpr.Position
+                    );
+
+                    var value = CheckAssignment(
+                        newIndexExpr,
+                        indexAssignExpr.Value,
+                        indexAssignExpr.AssignOperator,
+                        indexAssignExpr.Position
+                    );
+
                     return new(new IndexAssignExpr(
-                        new(
-                            target.Expr,
-                            index.Expr,
-                            indexExpr.Position
-                        ),
-                        value.Expr
-                    ), value.TypeSymbol);
+                        newIndexExpr,
+                        indexAssignExpr.AssignOperator,
+                        value
+                    ), pointer.Inner);
                 }
 
             case MemberExpr memberExpr:
@@ -463,7 +435,6 @@ partial class Semantics
                 {
                     var target = CheckExpr(memberAssignExpr.Target);
                     var member = memberAssignExpr.Member;
-                    var value = CheckExpr(memberAssignExpr.Value);
 
                     var targetType = target.TypeSymbol;
                     var targetExpr = target.Expr;
@@ -478,7 +449,22 @@ partial class Semantics
                     {
                         var field = structSymbol.Fields.Find(x => x.Name == member);
                         if (field != null)
-                            return new(memberAssignExpr with { Target = targetExpr, Value = value.Expr }, value.TypeSymbol);
+                        {
+                            var memberExpr = new MemberExpr(
+                                targetExpr,
+                                new(member, [], memberAssignExpr.Position),
+                                memberAssignExpr.Position
+                            );
+
+                            var value = CheckAssignment(
+                                memberExpr,
+                                memberAssignExpr.Value,
+                                memberAssignExpr.AssignOperator,
+                                memberAssignExpr.Position
+                            );
+
+                            return new(memberAssignExpr with { Target = targetExpr, Value = value }, field.Type);
+                        }
                         throw new Error($"Struct '{structSymbol.Name}' has no field '{member}'", memberAssignExpr.Position);
                     }
 
@@ -559,5 +545,85 @@ partial class Semantics
         }
 
         throw new UnreachableException($"Invalid expression: {expr.GetType().Name}");
+    }
+
+    ResolvedExpr CheckBinaryExpr(BinaryExpr binaryExpr)
+    {
+        var left = CheckExpr(binaryExpr.Left);
+        var right = CheckExpr(binaryExpr.Right);
+
+        if (left.TypeSymbol == TypeSymbol.Char || left.TypeSymbol == TypeSymbol.Bool)
+            left = left with { TypeSymbol = TypeSymbol.Int };
+
+        if (right.TypeSymbol == TypeSymbol.Char || right.TypeSymbol == TypeSymbol.Bool)
+            right = right with { TypeSymbol = TypeSymbol.Int };
+
+        var newExpr = binaryExpr with
+        {
+            Left = left.Expr,
+            Right = right.Expr
+        };
+
+        if (binaryExpr.Op is
+            TokenType.And or TokenType.Or or
+            TokenType.IsEqual or TokenType.NotEqual or
+            TokenType.Less or TokenType.Greater or
+            TokenType.LessEq or TokenType.GreaterEq)
+        {
+            return new(newExpr, TypeSymbol.Bool);
+        }
+
+        if (left.TypeSymbol is PointerSymbol pointer &&
+            right.TypeSymbol is NumericSymbol number &&
+            !number.IsFloat &&
+            binaryExpr.Op is TokenType.Add or TokenType.Sub)
+        {
+            return new(newExpr, pointer);
+        }
+
+        if (right.TypeSymbol is PointerSymbol pointerRight &&
+            left.TypeSymbol is NumericSymbol numberLeft &&
+            !numberLeft.IsFloat &&
+            binaryExpr.Op == TokenType.Add)
+        {
+            return new(newExpr, pointerRight);
+        }
+
+        if (left.TypeSymbol is PointerSymbol &&
+            right.TypeSymbol is PointerSymbol &&
+            binaryExpr.Op == TokenType.Sub)
+        {
+            return new(newExpr, TypeSymbol.Long);
+        }
+
+        if (left.TypeSymbol is NumericSymbol l && right.TypeSymbol is NumericSymbol r)
+        {
+            if (binaryExpr.Op is TokenType.BitwiseLeftShift or TokenType.BitwiseRightShift)
+            {
+                if (!l.IsFloat && l.Bits < 32)
+                    l = TypeSymbol.Int;
+                return new ResolvedExpr(newExpr, l);
+            }
+            return new(newExpr, PromoteArithmetic(l, r));
+        }
+
+        throw new Error("Binary error", binaryExpr.Position);
+    }
+
+    Expr CheckAssignment(Expr target, Expr value, TokenType op, Position position)
+    {
+        var binaryOp = Lexer.CompoundToBinary[op];
+
+        if (binaryOp == TokenType.Equal)
+            return CheckExpr(value).Expr;
+
+        var binary = new BinaryExpr(
+            target,
+            value,
+            binaryOp,
+            position
+        );
+
+        return ((BinaryExpr)CheckExpr(binary).Expr).Right;
     }
 }
