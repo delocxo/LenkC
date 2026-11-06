@@ -756,38 +756,29 @@ partial class Semantics
         if (matchs.Count == 1)
             return matchs[0].Function;
 
+        int lowest = int.MaxValue;
+        UnboundFunctionStmt? lowestMatch = null;
+        bool ambiguous = false;
+
         foreach (var match in matchs)
         {
-            bool beatsEveryone = true;
-
-            foreach (var other in matchs)
+            var summedRanks = match.Ranks.Sum();
+            if (summedRanks < lowest)
             {
-                if (match == other)
-                    continue;
-
-                bool hasBetterArg = false;
-                bool hasWorseArg = false;
-
-                for (int i = 0; i < arguments.Count; i++)
-                {
-                    if (match.Ranks[i] < other.Ranks[i])
-                        hasBetterArg = true;
-
-                    if (match.Ranks[i] > other.Ranks[i])
-                        hasWorseArg = true;
-                }
-
-                if (hasWorseArg || !hasBetterArg)
-                {
-                    beatsEveryone = false;
-                    break;
-                }
+                lowest = summedRanks;
+                lowestMatch = null;
+                ambiguous = false;
             }
-
-            if (beatsEveryone)
-                return match.Function;
+            else if (summedRanks == lowest)
+                ambiguous = true;
         }
 
-        throw new Error("Ambiguous overload", position);
+        if (lowestMatch == null)
+            throw new Error("No matching overloads were found", position);
+
+        if (ambiguous)
+            throw new Error("Ambiguous overload", position);
+
+        return lowestMatch;
     }
 }

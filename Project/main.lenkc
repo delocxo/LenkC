@@ -63,6 +63,7 @@ int main()
 
     // 6: ranks [0, 1, 0] versus [1, 0, 1].
     threeWay(10, (long)20, 30);
+    threeWay()
 
     return 0;
 }
