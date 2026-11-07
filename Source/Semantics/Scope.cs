@@ -12,25 +12,25 @@ class Local
 
 static class Scopes
 {
-    static Stack<Dictionary<string, Local>> _scopes = new([new()]);
+    public static Stack<Dictionary<string, Local>> ScopesData { get; set; } = new([new()]);
 
-    public static bool AtGlobalLevel => _scopes.Count == 1 /* || FunctionLevel > 0*/;
+    public static bool AtGlobalLevel => ScopesData.Count == 1 /* || FunctionLevel > 0*/;
     public static int FunctionLevel = 0;
 
     public static Local Declare(string name, TypeSymbol typeSymbol, Position position)
     {
-        if (_scopes.Peek().ContainsKey(name))
+        if (ScopesData.Peek().ContainsKey(name))
             throw new Error($"'{name}' has already been declared", position);
 
         Local local = new Local(name, typeSymbol);
-        _scopes.Peek().Add(name, local);
+        ScopesData.Peek().Add(name, local);
 
         return local;
     }
 
     public static bool TryResolve(string name, out Local? local)
     {
-        foreach (var scope in _scopes)
+        foreach (var scope in ScopesData)
             if (scope.TryGetValue(name, out local))
                 return true;
         local = null;
@@ -44,6 +44,6 @@ static class Scopes
         return local!;
     }
 
-    public static void BeginScope() => _scopes.Push(new());
-    public static void EndScope() => _scopes.Pop();
+    public static void BeginScope() => ScopesData.Push(new());
+    public static void EndScope() => ScopesData.Pop();
 }

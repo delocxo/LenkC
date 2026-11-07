@@ -4,6 +4,7 @@ partial class Semantics
 {
     static int s_vacount = 0;
     static bool s_canUseDParam = false;
+    static int s_nextLambda = 0;
 
     ResolvedExpr CheckExpr(Expr expr)
     {
@@ -567,6 +568,35 @@ partial class Semantics
                     if (!tags.Contains(hasTagExpr.Tag))
                         return new(new BoolExpr(false, hasTagExpr.Position), TypeSymbol.Bool);
                     return new(new BoolExpr(true, hasTagExpr.Position), TypeSymbol.Bool);
+                }
+
+            case LambdaExpr lambdaExpr:
+                {
+                    var function = lambdaExpr.UnboundFunctionStmt;
+                    function.IsVariadic = CheckParametersAndIsVariadac(function.Parameters, lambdaExpr.Position);
+                    function.Name = $"lambda_{s_nextLambda++}";
+
+                    var prevScopes = Scopes
+                        .ScopesData.Take(Scopes.ScopesData.Count - 1)
+                        .ToList();
+
+                    var globalScope = Scopes.ScopesData.Last();
+
+                    Scopes.ScopesData.Clear();
+
+                    Scopes.ScopesData.Push(globalScope);
+
+                    var bound = BoundFunction(function, [], lambdaExpr.Position);
+
+                    prevScopes.Reverse();
+
+                    foreach (var scope in prevScopes)
+                        Scopes.ScopesData.Push(scope);
+
+                    return new(
+                        new NameExpr(bound.Name, [], lambdaExpr.Position),
+                        bound.Symbol
+                    );
                 }
         }
 

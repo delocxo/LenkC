@@ -41,6 +41,7 @@ record DParamExpr(Position Position) : Expr(Position);
 record UnboundOutExpr(PSymbol Symbol, string Name, Position Position) : Expr(Position);
 record BoundOutExpr(TypeSymbol TypeSymbol, string Name, Position Position) : Expr(Position);
 record HasTagExpr(PSymbol Target, string Tag, Position Position) : Expr(Position);
+record LambdaExpr(UnboundFunctionStmt UnboundFunctionStmt, Position Position) : Expr(Position);
 record ResolvedExpr(Expr Expr, TypeSymbol TypeSymbol) : Expr(Expr.Position);
 
 class Stmt
@@ -206,13 +207,23 @@ class UnboundFunctionStmt : Stmt
     }
 
     public PSymbol ReturnType { get; }
-    public string Name { get; }
+    public string Name { get; set; }
     public List<string> TypeParameters { get; }
     public List<UnboundField> Parameters { get; }
     public List<Stmt> Body { get; }
     public bool IsVariadic { get; set; }
     public string? Parent { get; }
     public int OverloadIndex { get; set; } = 0;
+
+    public static UnboundFunctionStmt Lambda(
+        PSymbol returnType,
+        List<UnboundField> parameters,
+        List<Stmt> body,
+        Position position,
+        bool isVariadic = false)
+    {
+        return new(returnType, "", [], parameters, body, position, isVariadic);
+    }
 }
 
 class BoundFunctionStmt : Stmt

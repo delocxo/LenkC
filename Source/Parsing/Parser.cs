@@ -34,6 +34,10 @@ class Parser
 
     Stmt? ParseStmt()
     {
+        if (IsKnownType() &&
+            PeekNotAtEnd() &&
+            Peek().TokenType == TokenType.Period)
+            return ParseExprStmt();
         if (IsKnownType() || LooksLikeFunctionDeclaration())
             return ParseDeclaration();
         if (Check(TokenType.Infer))
@@ -209,19 +213,7 @@ class Parser
                 throw new Error($"Type parameter '{typeParam}' is an already existing type in this scope", returnSymbol.Position);
         }
 
-        Expect(TokenType.LeftParen);
-
-        List<UnboundField> parameters = [];
-
-        if (!Check(TokenType.RightParen))
-        {
-            parameters.Add(ParseField(true));
-
-            while (Match(TokenType.Comma))
-                parameters.Add(ParseField(true));
-        }
-
-        Expect(TokenType.RightParen);
+        var parameters = ParseParameters();
 
         var body = ParseBody();
 
@@ -551,6 +543,25 @@ class Parser
         Expect(TokenType.Semicolon);
 
         return new(symbol, tagName, position);
+    }
+
+    List<UnboundField> ParseParameters()
+    {
+        Expect(TokenType.LeftParen);
+
+        List<UnboundField> parameters = [];
+
+        if (!Check(TokenType.RightParen))
+        {
+            parameters.Add(ParseField(true));
+
+            while (Match(TokenType.Comma))
+                parameters.Add(ParseField(true));
+        }
+
+        Expect(TokenType.RightParen);
+
+        return parameters;
     }
 
     IfBranch ParseBranch()
@@ -964,6 +975,19 @@ class Parser
             Expect(TokenType.RightParen);
 
             return new HasTagExpr(symbol, tagName, token.Position);
+        }
+        else if (Match(TokenType.At))
+        {
+            var returnType = ParseSymbol();
+
+            var parameters = ParseParameters();
+
+            var body = ParseBody();
+
+            return new LambdaExpr(
+                UnboundFunctionStmt.Lambda(returnType, parameters, body, token.Position),
+                token.Position
+            );
         }
 
         throw ThrowUnexpected();
