@@ -26,7 +26,7 @@ static class TypeRegistery
 
     public static void RegisterPrimitives()
     {
-        Register(TypeSymbol.String);
+        Register("string", TypeSymbol.String);
         Register(TypeSymbol.Bool);
         Register(TypeSymbol.Char);
         Register(TypeSymbol.Void);

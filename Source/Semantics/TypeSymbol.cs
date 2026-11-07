@@ -2,7 +2,7 @@ using System.Numerics;
 
 record TypeSymbol(string Name, string CName, string? FormatSymbol)
 {
-    public static readonly StringSymbol String = new();
+    public static readonly PointerSymbol String = new PointerSymbol(new CharSymbol());
     public static readonly BoolSymbol Bool = new();
     public static readonly NullSymbol Null = new();
     public static readonly CharSymbol Char = new();
@@ -118,7 +118,6 @@ record NumericSymbol(string Name, string CName, int Bits, bool IsFloat, bool IsS
     }
 }
 
-record StringSymbol() : TypeSymbol("string", "char*", "%s");
 record BoolSymbol() : TypeSymbol("bool", "int", "%d");
 record NullSymbol() : TypeSymbol("null", "NULL", "%p");
 record CharSymbol() : TypeSymbol("char", "char", "%c");

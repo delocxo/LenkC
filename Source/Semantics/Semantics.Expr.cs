@@ -74,8 +74,6 @@ partial class Semantics
                                 throw new Error("Cannot deference a void pointer", unaryExpr.Position);
                             type = pointer.Inner;
                         }
-                        else if (type is StringSymbol)
-                            type = TypeSymbol.Char;
                         else
                             throw new Error("Cannot deference a string or non-pointer", unaryExpr.Position);
                     }
@@ -346,11 +344,6 @@ partial class Semantics
                 {
                     var target = CheckExpr(indexExpr.Target);
                     var index = CheckExpr(indexExpr.Index);
-                    if (target.TypeSymbol is StringSymbol stringSymbol)
-                        return new(
-                            new IndexExpr(target.Expr, index.Expr, indexExpr.Position),
-                            TypeSymbol.Char
-                        );
                     if (target.TypeSymbol is not PointerSymbol pointer)
                         throw new Error("Cannot index a non-pointer or non-string", indexExpr.Position);
                     if (pointer.Inner is VoidSymbol)
