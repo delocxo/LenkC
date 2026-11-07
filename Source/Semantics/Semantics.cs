@@ -104,6 +104,22 @@ partial class Semantics
 
                 s_enums.Add(unboundEnumStmt.Name, new(numericSymbol, unboundEnumStmt.Name, values));
             }
+
+        foreach (var stmt in stmts)
+        {
+            if (stmt is TagStmt tagStmt)
+            {
+                var type = ResolveSymbol(tagStmt.Symbol);
+                string tag = tagStmt.TagName;
+                if (!TypeRegistery.TagRegistery.TryGetValue(type, out var tags))
+                {
+                    HashSet<string> newTags = [];
+                    tags = newTags;
+                    TypeRegistery.TagRegistery[type] = newTags;
+                }
+                if (!tags.Add(tag))
+                    throw new Error($"Type already holds tag '{tag}'", tagStmt.Position);
+            }
             else if (stmt is UnboundExternFunctionStmt externFunctionStmt)
             {
                 if (s_externFunctions.ContainsKey((externFunctionStmt.Parent, externFunctionStmt.Name)))
@@ -133,22 +149,6 @@ partial class Semantics
                     boundParameters.Any(x => x.IsVariadic));
 
                 s_externFunctions.Add((externFunctionStmt.Parent, externFunctionStmt.Name), new(functionSymbol, externFunctionStmt.CName));
-            }
-
-        foreach (var stmt in stmts)
-        {
-            if (stmt is TagStmt tagStmt)
-            {
-                var type = ResolveSymbol(tagStmt.Symbol);
-                string tag = tagStmt.TagName;
-                if (!TypeRegistery.TagRegistery.TryGetValue(type, out var tags))
-                {
-                    HashSet<string> newTags = [];
-                    tags = newTags;
-                    TypeRegistery.TagRegistery[type] = newTags;
-                }
-                if (!tags.Add(tag))
-                    throw new Error($"Type already holds tag '{tag}'", tagStmt.Position);
             }
         }
 
