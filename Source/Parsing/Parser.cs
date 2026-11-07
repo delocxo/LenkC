@@ -615,7 +615,7 @@ class Parser
         return name;
     }
 
-    List<Stmt> ParseBody()
+    List<Stmt> ParseBody(bool requireSemicolonIfArrow = true)
     {
         _depth++;
 
@@ -624,7 +624,10 @@ class Parser
         if (Match(TokenType.Arrow))
         {
             var expr = ParseExpr();
+            if (requireSemicolonIfArrow)
+                Expect(TokenType.Semicolon);
             stmts.Add(new ReturnStmt(expr, expr.Position));
+            _depth--;
             return stmts;
         }
 
@@ -989,7 +992,7 @@ class Parser
 
             var parameters = ParseParameters();
 
-            var body = ParseBody();
+            var body = ParseBody(false);
 
             return new LambdaExpr(
                 UnboundFunctionStmt.Lambda(returnType, parameters, body, token.Position),
