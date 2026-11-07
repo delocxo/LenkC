@@ -7,7 +7,13 @@ class TagComparer : IEqualityComparer<TypeSymbol>
     {
         if (ReferenceEquals(x, y))
             return true;
-        return x != null && y != null && x.TypeCheck(y, false);
+        if (x is null || y is null)
+            return false;
+        if (x is StructNameSymbol || y is StructNameSymbol)
+            return x is StructNameSymbol left &&
+                y is StructNameSymbol right &&
+                left.Name == right.Name;
+        return x.TypeCheck(y, false);
     }
 
     public int GetHashCode(TypeSymbol obj)
@@ -29,6 +35,9 @@ class TagComparer : IEqualityComparer<TypeSymbol>
 
             return hash.ToHashCode();
         }
+
+        if (obj is StructNameSymbol definition)
+            return HashCode.Combine(typeof(StructNameSymbol), definition.Name);
 
         return obj.GetHashCode();
     }

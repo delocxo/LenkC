@@ -1,6 +1,52 @@
-int main(int argc, string* argv)
+include <stdio.h>
+extern int printf(string format, ...);
+
+struct List<T>
 {
-    infer add = @int(int a, int b) => a + b;
-    add(100, 100);
-    return 0;
+    T value;
+}
+
+tag struct List = collection;
+tag List::<int> = int_only;
+
+int failures = 0;
+
+void check(bool passed, string name)
+{
+    if (passed)
+        printf("PASS: %s\n", name);
+    else
+    {
+        printf("FAIL: %s\n", name);
+        failures += 1;
+    }
+}
+
+int main()
+{
+    check(hastag(struct List, collection),
+          "definition has collection");
+
+    check(hastag(List::<int>, collection),
+          "List<int> inherits collection");
+
+    check(hastag(List::<float>, collection),
+          "List<float> inherits collection");
+
+    check(hastag(List::<int>, int_only),
+          "List<int> has its own tag");
+
+    check(!hastag(List::<float>, int_only),
+          "specialization tags do not leak");
+
+    check(!hastag(struct List, int_only),
+          "specialization tags do not affect definition");
+
+    check(!hastag(List::<int>, missing),
+          "missing tag returns false");
+
+    check(hastag(struct List, collection),
+          "fresh definition symbol finds existing entry");
+
+    return failures;
 }

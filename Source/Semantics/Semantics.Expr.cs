@@ -563,11 +563,21 @@ partial class Semantics
             case HasTagExpr hasTagExpr:
                 {
                     var type = ResolveSymbol(hasTagExpr.Target);
-                    if (!TypeRegistery.TagRegistery.TryGetValue(type, out var tags))
-                        return new(new BoolExpr(false, hasTagExpr.Position), TypeSymbol.Bool);
-                    if (!tags.Contains(hasTagExpr.Tag))
-                        return new(new BoolExpr(false, hasTagExpr.Position), TypeSymbol.Bool);
-                    return new(new BoolExpr(true, hasTagExpr.Position), TypeSymbol.Bool);
+
+                    if (TypeRegistery.TagRegistery.TryGetValue(type, out var tags))
+                        if (tags.Contains(hasTagExpr.Tag))
+                            return new(new BoolExpr(true, hasTagExpr.Position), TypeSymbol.Bool);
+
+                    if (type is StructSymbol structSymbol)
+                    {
+                        var structNameSymbol = new StructNameSymbol(structSymbol.Name, hasTagExpr.Position);
+
+                        if (TypeRegistery.TagRegistery.TryGetValue(structNameSymbol, out var structTags))
+                            if (structTags.Contains(hasTagExpr.Tag))
+                                return new(new BoolExpr(true, hasTagExpr.Position), TypeSymbol.Bool);
+                    }
+
+                    return new(new BoolExpr(false, hasTagExpr.Position), TypeSymbol.Bool);
                 }
 
             case LambdaExpr lambdaExpr:

@@ -112,7 +112,7 @@ class Parser
 
     Stmt ParseDeclaration()
     {
-        var symbol = ParseSymbol();
+        var symbol = ParseSymbol(false);
 
         if (PeekNotAtEnd() && Peek().TokenType is TokenType.LeftParen
             or TokenType.Less
@@ -392,7 +392,7 @@ class Parser
 
         Position position = PosNext();
 
-        var symbol = ParseSymbol();
+        var symbol = ParseSymbol(false);
 
         string name = ParseName("Expected enum name");
 
@@ -425,7 +425,7 @@ class Parser
             Expect(TokenType.RightParen);
         }
 
-        var returnSymbol = ParseSymbol();
+        var returnSymbol = ParseSymbol(false);
 
         string name = ParseName();
         string? parent = null;
@@ -583,7 +583,7 @@ class Parser
         Position pos = Current().Position;
         if (isFunciton && Match(TokenType.Variadic))
             return new(new PSymbol(pos), "variadic", pos, true);
-        var symbol = ParseSymbol();
+        var symbol = ParseSymbol(false);
         string name = ParseName("Expected parameter name");
         return new(symbol, name, pos, false);
     }
@@ -681,10 +681,10 @@ class Parser
 
         Expect(TokenType.Less);
 
-        List<PSymbol> names = [ParseSymbol()];
+        List<PSymbol> names = [ParseSymbol(false)];
 
         while (Match(TokenType.Comma))
-            names.Add(ParseSymbol());
+            names.Add(ParseSymbol(false));
 
         Expect(TokenType.Greater);
 
@@ -717,7 +717,7 @@ class Parser
         return args;
     }
 
-    PSymbol ParseSymbol()
+    PSymbol ParseSymbol(bool allowStructName = true)
     {
         Position position = Current().Position;
 
@@ -728,11 +728,22 @@ class Parser
         //     return new ArrayPSymbol(innerSymbol, position);
         // }
 
+        if (Check(TokenType.Struct))
+        {
+            if (!allowStructName)
+                throw new Error("Struct definitions cannot be used as storage types", position);
+
+            Next();
+            string name = ParseName();
+
+            return new StructPSymbol(name, position);
+        }
+
         PSymbol symbol;
 
         if (Match(TokenType.LeftParen))
         {
-            symbol = ParseSymbol();
+            symbol = ParseSymbol(allowStructName);
             Expect(TokenType.RightParen);
         }
         else if (Match(TokenType.At))
@@ -750,7 +761,7 @@ class Parser
                         parameters.Add(new FunctionParameterPSymbol(new PSymbol(pos), true));
                     else
                         parameters.Add(
-                            new FunctionParameterPSymbol(ParseSymbol(), false)
+                            new FunctionParameterPSymbol(ParseSymbol(false), false)
                         );
                 }
                 while (Match(TokenType.Comma));
@@ -760,7 +771,7 @@ class Parser
 
             Expect(TokenType.Arrow);
 
-            PSymbol returnType = ParseSymbol();
+            PSymbol returnType = ParseSymbol(false);
 
             symbol = new FunctionPSymbol(returnType, parameters, position);
         }
@@ -893,7 +904,7 @@ class Parser
         {
             Expect(TokenType.LeftParen);
 
-            var symbol = ParseSymbol();
+            var symbol = ParseSymbol(false);
 
             Expect(TokenType.Comma);
 
@@ -908,7 +919,7 @@ class Parser
         {
             Expect(TokenType.LeftParen);
 
-            var symbol = ParseSymbol();
+            var symbol = ParseSymbol(false);
 
             Expect(TokenType.Comma);
 
@@ -922,7 +933,7 @@ class Parser
         {
             Expect(TokenType.LeftParen);
 
-            var symbol = ParseSymbol();
+            var symbol = ParseSymbol(false);
 
             Expect(TokenType.RightParen);
 
@@ -932,7 +943,7 @@ class Parser
         {
             Expect(TokenType.LeftParen);
 
-            var symbol = ParseSymbol();
+            var symbol = ParseSymbol(false);
 
             Expect(TokenType.RightParen);
 
@@ -958,7 +969,7 @@ class Parser
         {
             Expect(TokenType.LeftParen);
 
-            var symbol = ParseSymbol();
+            var symbol = ParseSymbol(false);
 
             Expect(TokenType.RightParen);
 
@@ -968,7 +979,7 @@ class Parser
             return new DParamExpr(token.Position);
         else if (Match(TokenType.Out))
         {
-            var symbol = ParseSymbol();
+            var symbol = ParseSymbol(false);
             string name = ParseName("Expected out variable name");
             return new UnboundOutExpr(symbol, name, token.Position);
         }
@@ -988,7 +999,7 @@ class Parser
         }
         else if (Match(TokenType.At))
         {
-            var returnType = ParseSymbol();
+            var returnType = ParseSymbol(false);
 
             var parameters = ParseParameters();
 
@@ -1080,7 +1091,7 @@ class Parser
         {
             Token op = Current();
             Next();
-            var symbol = ParseSymbol();
+            var symbol = ParseSymbol(false);
             Expect(TokenType.RightParen);
             Expr target = ParseUnary();
             return new UnboundCastExpr(symbol, target, op.Position);
@@ -1468,7 +1479,7 @@ class Parser
 
         try
         {
-            ParseSymbol();
+            ParseSymbol(false);
 
             if (!Check(TokenType.Identifier))
                 return false;

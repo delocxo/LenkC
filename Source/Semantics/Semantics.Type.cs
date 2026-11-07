@@ -72,7 +72,6 @@ partial class Semantics
                 {
                     bool isVariadic = false;
 
-
                     List<TypeSymbol> parameterTypes = [];
 
                     foreach (var parameter in functionPSymbol.Parameters)
@@ -93,6 +92,13 @@ partial class Semantics
                     var returnType = ResolveSymbol(functionPSymbol.ReturnType);
 
                     return new FunctionSymbol(returnType, parameterTypes, isVariadic);
+                }
+
+            case StructPSymbol structNameSymbol:
+                {
+                    if (!s_structs.ContainsKey(structNameSymbol.Name))
+                        throw new Error($"'{structNameSymbol.Name}' is not a valid struct", structNameSymbol.Position);
+                    return new StructNameSymbol(structNameSymbol.Name, structNameSymbol.Position);
                 }
 
             default:

@@ -2,7 +2,7 @@ using System.Numerics;
 
 record TypeSymbol(string Name, string CName, string? FormatSymbol)
 {
-    public static readonly PointerSymbol String = new PointerSymbol(new CharSymbol());
+    public static readonly PointerSymbol String = new PointerSymbol(new CharSymbol(), "%s");
     public static readonly BoolSymbol Bool = new();
     public static readonly NullSymbol Null = new();
     public static readonly CharSymbol Char = new();
@@ -80,6 +80,15 @@ record TypeSymbol(string Name, string CName, string? FormatSymbol)
             return false;
         }
 
+        if (this is StructSymbol l && other is StructNameSymbol r)
+            return l.Name == r.Name;
+
+        if (this is StructNameSymbol l2 && other is StructSymbol r2)
+            return l2.Name == r2.Name;
+
+        if (this is StructNameSymbol snl && other is StructNameSymbol snr)
+            return snl.Name == snr.Name;
+
         return this == other;
     }
 
@@ -122,7 +131,8 @@ record BoolSymbol() : TypeSymbol("bool", "int", "%d");
 record NullSymbol() : TypeSymbol("null", "NULL", "%p");
 record CharSymbol() : TypeSymbol("char", "char", "%c");
 record VoidSymbol() : TypeSymbol("void", "void", null);
-record PointerSymbol(TypeSymbol Inner) : TypeSymbol("", "", "%p");
+record PointerSymbol(TypeSymbol Inner, string Format = "%p") : TypeSymbol("", "", Format);
 record FunctionSymbol(TypeSymbol ReturnType, List<TypeSymbol> ParameterTypes, bool IsVariadic) : TypeSymbol("", "", null);
 record StructSymbol(string Name, string CName, List<BoundField> Fields, List<TypeSymbol> TypeArguments, bool IsUnion) : TypeSymbol(Name, CName, null);
 record EnumSymbol(TypeSymbol Type, string Name, Dictionary<string, BigInteger> Values);
+record StructNameSymbol(string Name, Position Position) : TypeSymbol(Name, "", null);
