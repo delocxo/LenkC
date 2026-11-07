@@ -621,6 +621,13 @@ class Parser
 
         List<Stmt> stmts = new List<Stmt>();
 
+        if (Match(TokenType.Arrow))
+        {
+            var expr = ParseExpr();
+            stmts.Add(new ReturnStmt(expr, expr.Position));
+            return stmts;
+        }
+
         if (!Check(TokenType.LeftBrace))
         {
             var stmt = ParseStmt();

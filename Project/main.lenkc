@@ -1,6 +1,6 @@
 int main(int argc, string* argv)
 {
-    infer add = @int(int a, int b) return a + b;;
+    infer add = @int(int a, int b) => a + b;
     add(100, 100);
     return 0;
 }
