@@ -34,7 +34,7 @@ class Parser
 
     Stmt? ParseStmt()
     {
-        if (IsKnownType())
+        if (IsKnownType() || LooksLikeFunctionDeclaration())
             return ParseDeclaration();
         if (Check(TokenType.Infer))
             return ParseInfer();
@@ -203,6 +203,12 @@ class Parser
         if (Check(TokenType.Less))
             typeParameters = ParseNames(TokenType.Less, TokenType.Greater);
 
+        foreach (string typeParam in typeParameters)
+        {
+            if (!KnownUserTypes.Add(typeParam))
+                throw new Error($"Type parameter '{typeParam}' is an already existing type in this scope", returnSymbol.Position);
+        }
+
         Expect(TokenType.LeftParen);
 
         List<UnboundField> parameters = [];
@@ -218,6 +224,9 @@ class Parser
         Expect(TokenType.RightParen);
 
         var body = ParseBody();
+
+        foreach (string typeParam in typeParameters)
+            KnownUserTypes.Remove(typeParam);
 
         return new(returnSymbol, name, typeParameters, parameters, body, returnSymbol.Position, parent: parent);
     }
@@ -261,11 +270,20 @@ class Parser
 
         List<UnboundField> fields = [];
 
+        foreach (string typeParam in typeParameters)
+        {
+            if (!KnownUserTypes.Add(typeParam))
+                throw new Error($"Type parameter '{typeParam}' is an already existing type in this scope", position);
+        }
+
         while (!Check(TokenType.RightBrace))
         {
             fields.Add(ParseField(false));
             Expect(TokenType.Semicolon);
         }
+
+        foreach (string typeParam in typeParameters)
+            KnownUserTypes.Remove(typeParam);
 
         Expect(TokenType.RightBrace);
 
@@ -1408,5 +1426,40 @@ class Parser
             TypeRegistery.Registery.ContainsKey(name))
             return true;
         return false;
+    }
+
+    bool LooksLikeFunctionDeclaration()
+    {
+        int previous = _i;
+
+        try
+        {
+            ParseSymbol();
+
+            if (!Check(TokenType.Identifier))
+                return false;
+
+            Next();
+
+            if (Match(TokenType.Period))
+            {
+                if (!Check(TokenType.Identifier))
+                    return false;
+                Next();
+            }
+
+            if (Check(TokenType.Less))
+                ParseNames(TokenType.Less, TokenType.Greater);
+
+            return Check(TokenType.LeftParen);
+        }
+        catch (Error)
+        {
+            return false;
+        }
+        finally
+        {
+            _i = previous;
+        }
     }
 }

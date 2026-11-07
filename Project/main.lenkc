@@ -1,63 +1,50 @@
 include <stdio.h>
 extern int printf(string format, ...);
 
-tag string = hashable;
-tag string = equatable;
-
-struct Box<T>
+struct Box<U>
 {
-    T value;
+    U value;
 }
 
-tag Box::<int> = container;
-
-int isHashable<T>()
+T copy<T>(T input)
 {
-    int result = 0;
+    T local = input;
+    return local;
+}
 
-    comptime if (hastag(T, hashable))
-        result = 1;
+T convert<T>(int input)
+{
+    T local = (T)input;
+    return local;
+}
 
-    return result;
+Box::<T> wrap<T>(T input)
+{
+    Box::<T> box = Box::<T>(input);
+    return box;
 }
 
 int main()
 {
-    comptime if (hastag(string, hashable))
-        printf("PASS: string is hashable\n");
-    else
-        printf("FAIL: string is missing hashable\n");
+    printf("Generic local: %d (expected 42)\n",
+        copy::<int>(42));
 
-    comptime if (hastag(string, equatable))
-        printf("PASS: repeated tag declarations accumulate\n");
-    else
-        printf("FAIL: string is missing equatable\n");
+    printf("Generic cast: %.1f (expected 7.0)\n",
+        convert::<float>(7));
 
-    comptime if (hastag(int, hashable))
-        printf("FAIL: int inherited string's tag\n");
-    else
-        printf("PASS: untagged type returns false\n");
+    infer box = wrap::<int>(99);
+    printf("Nested generic type: %d (expected 99)\n",
+        box.value);
 
-    comptime if (hastag(string, nonexistent))
-        printf("FAIL: nonexistent tag returned true\n");
-    else
-        printf("PASS: nonexistent tag returns false\n");
+    // These names must no longer be treated as types.
+    int T = 40;
+    T += 2;
 
-    comptime if (hastag(Box::<int>, container))
-        printf("PASS: generic struct has its tag\n");
-    else
-        printf("FAIL: generic struct is missing its tag\n");
+    int U = 5;
+    U += 1;
 
-    comptime if (hastag(Box::<string>, container))
-        printf("FAIL: tag leaked between generic specializations\n");
-    else
-        printf("PASS: generic specializations have separate tags\n");
-
-    printf("Generic string check: %d (expected 1)\n",
-        isHashable::<string>());
-
-    printf("Generic int check: %d (expected 0)\n",
-        isHashable::<int>());
+    printf("T scope restored: %d (expected 42)\n", T);
+    printf("U scope restored: %d (expected 6)\n", U);
 
     return 0;
 }
