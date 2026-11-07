@@ -1,69 +1,63 @@
-// Each overload is better for a different argument.
-int crossed(int a, long b) { return 1; }
-int crossed(long a, int b) { return 2; }
+include <stdio.h>
+extern int printf(string format, ...);
 
-// Both accept the literal through conversion.
-int narrow(byte value)  { return 1; }
-int narrow(short value) { return 2; }
+tag string = hashable;
+tag string = equatable;
 
-// Both match the fixed argument exactly.
-// Your current rules have no non-variadic preference.
-int fixedTie(int value)      { return 1; }
-int fixedTie(int value, ...) { return 2; }
-
-// Both accept every extra argument through ...
-int variadicTie(int first, long second, ...)
+struct Box<T>
 {
-    return 1;
+    T value;
 }
 
-int variadicTie(long first, int second, ...)
-{
-    return 2;
-}
+tag Box::<int> = container;
 
-// Generic substitution produces equally good signatures.
-int genericTie<T>(T first, int second)
+int isHashable<T>()
 {
-    return 1;
-}
+    int result = 0;
 
-int genericTie<T>(int first, T second)
-{
-    return 2;
-}
+    comptime if (hastag(T, hashable))
+        result = 1;
 
-// Neither candidate is consistently better across three arguments.
-int threeWay(int a, long b, int c)
-{
-    return 1;
-}
-
-int threeWay(long a, int b, long c)
-{
-    return 2;
+    return result;
 }
 
 int main()
 {
-    // 1: ranks [0, 1] versus [1, 0].
-    crossed(10, cast(long, 10));
+    comptime if (hastag(string, hashable))
+        printf("PASS: string is hashable\n");
+    else
+        printf("FAIL: string is missing hashable\n");
 
-    // 2: ranks [1] versus [1].
-    narrow(cast(short, 10));
+    comptime if (hastag(string, equatable))
+        printf("PASS: repeated tag declarations accumulate\n");
+    else
+        printf("FAIL: string is missing equatable\n");
 
-    // 3: ranks [0] versus [0].
-    fixedTie(10, 100);
+    comptime if (hastag(int, hashable))
+        printf("FAIL: int inherited string's tag\n");
+    else
+        printf("PASS: untagged type returns false\n");
 
-    // 4: ranks [0, 1, 2] versus [1, 0, 2].
-    variadicTie(cast(long, 10), 20, "extra");
+    comptime if (hastag(string, nonexistent))
+        printf("FAIL: nonexistent tag returned true\n");
+    else
+        printf("PASS: nonexistent tag returns false\n");
 
-    // 5: T becomes int, giving both candidates [0, 0].
-    genericTie::<string>(10, "");
+    comptime if (hastag(Box::<int>, container))
+        printf("PASS: generic struct has its tag\n");
+    else
+        printf("FAIL: generic struct is missing its tag\n");
 
-    // 6: ranks [0, 1, 0] versus [1, 0, 1].
-    threeWay(10, (long)20, 30);
-    threeWay()
+    comptime if (hastag(Box::<string>, container))
+        printf("FAIL: tag leaked between generic specializations\n");
+    else
+        printf("PASS: generic specializations have separate tags\n");
+
+    printf("Generic string check: %d (expected 1)\n",
+        isHashable::<string>());
+
+    printf("Generic int check: %d (expected 0)\n",
+        isHashable::<int>());
 
     return 0;
 }

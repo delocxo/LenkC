@@ -4,6 +4,8 @@ static class TypeRegistery
     {
     };
 
+    public static Dictionary<TypeSymbol, HashSet<string>> TagRegistery = new(new TagComparer());
+
     public static void Register(TypeSymbol typeSymbol, Position? position = null)
     {
         if (!Registery.TryAdd(typeSymbol.Name, typeSymbol))

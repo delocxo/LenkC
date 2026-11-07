@@ -565,6 +565,16 @@ partial class Semantics
                         type
                     );
                 }
+
+            case HasTagExpr hasTagExpr:
+                {
+                    var type = ResolveSymbol(hasTagExpr.Target);
+                    if (!TypeRegistery.TagRegistery.TryGetValue(type, out var tags))
+                        return new(new BoolExpr(false, hasTagExpr.Position), TypeSymbol.Bool);
+                    if (!tags.Contains(hasTagExpr.Tag))
+                        return new(new BoolExpr(false, hasTagExpr.Position), TypeSymbol.Bool);
+                    return new(new BoolExpr(true, hasTagExpr.Position), TypeSymbol.Bool);
+                }
         }
 
         throw new UnreachableException($"Invalid expression: {expr.GetType().Name}");
@@ -766,7 +776,7 @@ partial class Semantics
             if (summedRanks < lowest)
             {
                 lowest = summedRanks;
-                lowestMatch = null;
+                lowestMatch = match.Function;
                 ambiguous = false;
             }
             else if (summedRanks == lowest)

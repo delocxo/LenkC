@@ -94,6 +94,8 @@ class Parser
             Expect(TokenType.If);
             return ParseIf(position, true);
         }
+        if (Check(TokenType.Tag))
+            return ParseTag();
         return ParseExprStmt();
     }
 
@@ -518,6 +520,21 @@ class Parser
         return new(path, isSystem, position);
     }
 
+    TagStmt ParseTag()
+    {
+        Position position = PosNext();
+
+        var symbol = ParseSymbol();
+
+        Expect(TokenType.Equal);
+
+        string tagName = ParseName("Expected tag name");
+
+        Expect(TokenType.Semicolon);
+
+        return new(symbol, tagName, position);
+    }
+
     IfBranch ParseBranch()
     {
         Expect(TokenType.LeftParen);
@@ -915,6 +932,20 @@ class Parser
             var symbol = ParseSymbol();
             string name = ParseName("Expected out variable name");
             return new UnboundOutExpr(symbol, name, token.Position);
+        }
+        else if (Match(TokenType.HasTag))
+        {
+            Expect(TokenType.LeftParen);
+
+            var symbol = ParseSymbol();
+
+            Expect(TokenType.Comma);
+
+            string tagName = ParseName("Expected tag name");
+
+            Expect(TokenType.RightParen);
+
+            return new HasTagExpr(symbol, tagName, token.Position);
         }
 
         throw ThrowUnexpected();

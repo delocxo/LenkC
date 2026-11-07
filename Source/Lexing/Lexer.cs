@@ -41,7 +41,9 @@ class Lexer
             { "dparam", TokenType.DParam },
             { "include", TokenType.Include },
             { "out", TokenType.Out },
-            { "comptime", TokenType.Comptime }
+            { "comptime", TokenType.Comptime },
+            { "tag", TokenType.Tag },
+            { "hastag", TokenType.HasTag}
         };
 
     static Dictionary<string, TokenType> s_symbols = new Dictionary<string, TokenType>()
@@ -135,6 +137,8 @@ class Lexer
 
     public static string GetCompoundValue(TokenType type)
     {
+        if (type == TokenType.Equal)
+            return "=";
         KeyValuePair<string, TokenType> compound = CompoundOperators.FirstOrDefault(x => x.Value == type);
         return compound.Key;
     }

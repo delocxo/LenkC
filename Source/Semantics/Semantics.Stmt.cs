@@ -73,8 +73,8 @@ partial class Semantics
 
             foreach (var branch in ifStmt.IfBranches)
             {
-                if (compTime && branch.Expr is not TypeIsExpr)
-                    throw new Error("Compile time branches conditions can only be typeis for now", ifStmt.Position);
+                if (compTime && branch.Expr is not (TypeIsExpr or HasTagExpr))
+                    throw new Error("Compile time branches conditions can only be typeis or hastag for now", ifStmt.Position);
 
                 var expr = CheckExpr(branch.Expr).Expr;
 
@@ -174,6 +174,12 @@ partial class Semantics
             if (!Scopes.AtGlobalLevel)
                 throw new Error($"Extern '{unboundExternFunctionStmt.Name}' can only be defined at the top-level", unboundExternFunctionStmt.Position);
             return unboundExternFunctionStmt;
+        }
+        else if (stmt is TagStmt tagStmt)
+        {
+            if (!Scopes.AtGlobalLevel)
+                throw new Error($"Tags can only be defined at the top-level", tagStmt.Position);
+            return tagStmt;
         }
 
         throw new UnreachableException($"Invalid statement: {stmt.GetType().Name}");

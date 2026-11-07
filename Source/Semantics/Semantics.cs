@@ -136,6 +136,23 @@ partial class Semantics
             }
 
         foreach (var stmt in stmts)
+        {
+            if (stmt is TagStmt tagStmt)
+            {
+                var type = ResolveSymbol(tagStmt.Symbol);
+                string tag = tagStmt.TagName;
+                if (!TypeRegistery.TagRegistery.TryGetValue(type, out var tags))
+                {
+                    HashSet<string> newTags = [];
+                    tags = newTags;
+                    TypeRegistery.TagRegistery[type] = newTags;
+                }
+                if (!tags.Add(tag))
+                    throw new Error($"Type already holds tag '{tag}'", tagStmt.Position);
+            }
+        }
+
+        foreach (var stmt in stmts)
             newStmts.Add(CheckStmt(stmt));
 
         return newStmts;

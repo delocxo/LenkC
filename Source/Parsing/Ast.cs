@@ -40,6 +40,7 @@ record BoundDefaultExpr(TypeSymbol TypeSymbol, Position Position) : Expr(Positio
 record DParamExpr(Position Position) : Expr(Position);
 record UnboundOutExpr(PSymbol Symbol, string Name, Position Position) : Expr(Position);
 record BoundOutExpr(TypeSymbol TypeSymbol, string Name, Position Position) : Expr(Position);
+record HasTagExpr(PSymbol Target, string Tag, Position Position) : Expr(Position);
 record ResolvedExpr(Expr Expr, TypeSymbol TypeSymbol) : Expr(Expr.Position);
 
 class Stmt
@@ -350,4 +351,16 @@ class IncludeStmt : Stmt
 
     public string Path { get; }
     public bool IsSystem { get; }
+}
+
+class TagStmt : Stmt
+{
+    public TagStmt(PSymbol symbol, string tagName, Position position) : base(position)
+    {
+        Symbol = symbol;
+        TagName = tagName;
+    }
+
+    public PSymbol Symbol { get; }
+    public string TagName { get; }
 }

@@ -45,23 +45,23 @@ record TypeSymbol(string Name, string CName, string? FormatSymbol)
         return this;
     }
 
-    public bool TypeCheck(TypeSymbol other)
+    public bool TypeCheck(TypeSymbol other, bool deepCheck = true)
     {
-        if (this is PointerSymbol pl && other is PointerSymbol pr)
-            return pl.Inner.TypeCheck(pr.Inner);
+        if (deepCheck && this is PointerSymbol pl && other is PointerSymbol pr)
+            return pl.Inner.TypeCheck(pr.Inner, deepCheck);
 
         if (this is FunctionSymbol fl && other is FunctionSymbol fr)
             return fl.ParameterTypes.Count == fr.ParameterTypes.Count &&
                 fl.ParameterTypes
                     .Zip(fr.ParameterTypes)
-                    .All(pair => pair.First.TypeCheck(pair.Second))
-                && fl.ReturnType.TypeCheck(fr.ReturnType)
+                    .All(pair => pair.First.TypeCheck(pair.Second, deepCheck))
+                && fl.ReturnType.TypeCheck(fr.ReturnType, deepCheck)
                 && fl.IsVariadic == fr.IsVariadic;
 
         if (this is StructSymbol sl && other is StructSymbol sr)
             return ReferenceEquals(sl, sr);
 
-        if (this is NumericSymbol nl && other is NumericSymbol nr)
+        if (deepCheck && this is NumericSymbol nl && other is NumericSymbol nr)
         {
             if (nl.IsFloat && nr.IsFloat)
                 return nl.Bits >= nr.Bits;
